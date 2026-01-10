@@ -107,19 +107,19 @@ Acceptance
 
 PHASE 6 — End-to-end sample + acceptance suite
 ---------------------------------------------
-[ ] Add a minimal example project or console sample.
+[x] Add a minimal example project or console sample.
 	- Defines a schema with a downstream `MyImportNode : SyntaxNode, IImportNode`.
 	- Parses/binds resources to trees.
 	- Runs `Preprocessor<TContent, ImportDirective, TContext>.ProcessAsync(...)`.
 	- Prints/validates merged output.
-[ ] Add a focused test suite covering:
+[x] Add a focused test suite covering:
 	- schema binding required
 	- cycle diagnostics
 	- max depth diagnostics
 	- resolution failure pinned to import node
 Acceptance
-	- `dotnet test` green.
-	- Sample demonstrates the “just works” user story.
+	[x] `dotnet test` green.
+	[x] Sample demonstrates the "just works" user story.
 
 
 PHASE 7 — Documentation + packaging
