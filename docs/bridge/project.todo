@@ -1,0 +1,134 @@
+
+TinyAst.Preprocessor — Project TODO
+==================================
+
+Goal
+----
+Implement an AST-native preprocessor bridge on TinyPreprocessor 0.3.0 using TinyAst schema-bound trees.
+
+Core constraints
+----------------
+- Schema binding is required for import discovery.
+- Import nodes are downstream-defined `SyntaxNode` types implementing `IImportNode`.
+- Import extraction uses TinyAst Query: `tree.Select(Query.Syntax<TImportNode>())`.
+- All locations are TinyAst absolute offsets (trivia-inclusive): `Range = Position..Position`.
+- Merge uses TinyAst `SyntaxEditor` (no manual green-node manipulation).
+
+
+PHASE 0 — Decide the content model (design gate)
+----------------------------------------------
+[ ] Pick `TContent` for TinyPreprocessor pipeline.
+	- Use: `SyntaxTree`.
+[ ] Define what “content length” means for `TContent`.
+	- Must match TinyAst node coordinate space (absolute char offsets including trivia).
+[ ] Define how `Slice(TContent, start, length)` will behave.
+	- If `TContent = SyntaxTree`, decide whether Slice returns:
+	  - a new red-tree containing the sliced nodes/text.
+[ ] Confirm which TinyPreprocessor features require slicing/offset math beyond merge.
+Acceptance
+	- Written decision recorded in docs/bridge/05-implementation-plan.md.
+
+
+PHASE 1 — Bridge contracts + directive semantics
+-----------------------------------------------
+[ ] Create `IImportNode` interface.
+	- `string Reference { get; }`
+[ ] Define directive type `ImportDirective`.
+	- Fields: `string Reference`, `Range Location`, optionally `ResourceId Resource`.
+[ ] Implement `IDirectiveModel<ImportDirective>`.
+	- `GetLocation(d) => d.Location`.
+	- `TryGetReference(d, out reference)` returns true only when reference is valid.
+	- Decide policy: whitespace/empty reference => non-dependency vs diagnostic.
+Acceptance
+	- A unit test verifying Location = Position..Position for a sample import node.
+
+
+PHASE 2 — Directive parsing from SyntaxTree (Query-based)
+--------------------------------------------------------
+[ ] Implement `IDirectiveParser<TContent, ImportDirective>`.
+	- Require schema-bound trees (`HasSchema == true`).
+	- Use `Query.Syntax<TImportNode>()` to find import nodes.
+	- Convert to directives with node-start anchored location.
+[ ] Ensure deterministic ordering (document order from Query results).
+[ ] Define behavior for malformed import nodes (e.g., Reference empty).
+Acceptance
+	- Given a schema-bound tree with N import nodes, parser yields N directives.
+	- Locations match node start positions exactly.
+
+
+PHASE 3 — Resource store + resolver (AST resources)
+---------------------------------------------------
+[ ] Define `IResource<TContent>` representation for AST resources.
+	- Use TinyPreprocessor.Core `Resource<TContent>` unless custom metadata is needed.
+[ ] Implement in-memory resource store for tests/examples.
+[ ] Implement `IResourceResolver<TContent>`.
+	- Resolve relative references against `context.Id` when appropriate.
+	- Return `ResourceResolutionResult<TContent>.Success(...)` or `.Failure(...)`.
+[ ] Ensure failure diagnostics point to the import node.
+	- Requires wiring directive location into resolution failure diagnostics.
+	- If resolver signature lacks directive context, implement a resolver wrapper that can map `reference` -> `(resourceId, range)` for the current resolution step.
+Acceptance
+	- Unresolvable reference produces `ResolutionFailedDiagnostic` with `Resource=context.Id` and `Location=directive.Location`.
+
+
+PHASE 4 — Content model (`IContentModel<TContent>`)
+--------------------------------------------------
+[ ] Implement `IContentModel<TContent>`.
+	- `GetLength(content)` returns length in node coordinate units.
+	- `Slice(content, start, length)` works in the same offset space.
+[ ] Confirm consistency:
+	- For any node, `0 <= Position <= GetLength(content)`.
+[ ] Add tests for slicing edge cases.
+	- start/length bounds
+	- zero-length slices
+Acceptance
+	- Property-based or table-driven tests demonstrating slice/length correctness.
+
+
+PHASE 5 — Merge strategy (SyntaxEditor)
+--------------------------------------
+[ ] Implement `IMergeStrategy<TContent, ImportDirective, TContext>`.
+	- Input: ordered resources (deps first) + MergeContext.
+	- Use `SyntaxEditor` to:
+	  - remove import nodes
+	  - splice referenced content at each import site
+[ ] Define splicing semantics.
+	- What gets inserted (root children? full tree? block contents?)
+	- How to handle trivia between import node and surrounding nodes.
+[ ] Build source map.
+	- Use `mergeContext.SourceMapBuilder` to map generated offsets back to original resources.
+	- Decide mapping granularity (per-resource segments vs per-splice segments).
+[ ] Report merge-time diagnostics to `mergeContext.Diagnostics`.
+Acceptance
+	- End-to-end test: main + nested includes produce merged output tree with import nodes removed.
+	- Source map query at multiple offsets returns expected origin resource+offset.
+
+
+PHASE 6 — End-to-end sample + acceptance suite
+---------------------------------------------
+[ ] Add a minimal example project or console sample.
+	- Defines a schema with a downstream `MyImportNode : SyntaxNode, IImportNode`.
+	- Parses/binds resources to trees.
+	- Runs `Preprocessor<TContent, ImportDirective, TContext>.ProcessAsync(...)`.
+	- Prints/validates merged output.
+[ ] Add a focused test suite covering:
+	- schema binding required
+	- cycle diagnostics
+	- max depth diagnostics
+	- resolution failure pinned to import node
+Acceptance
+	- `dotnet test` green.
+	- Sample demonstrates the “just works” user story.
+
+
+PHASE 7 — Documentation + packaging
+----------------------------------
+[ ] Update README with:
+	- current TinyPreprocessor version requirement (0.3.0+)
+	- how downstream users define `MyImportNode`
+	- minimal wiring snippet
+[ ] Ensure docs/bridge/ are consistent with shipped API and implementation.
+[ ] Decide on public surface area to keep stable (namespaces, type names).
+Acceptance
+	- README describes a runnable usage path.
+
