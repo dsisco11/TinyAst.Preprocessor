@@ -59,17 +59,17 @@ Acceptance
 
 PHASE 3 — Resource store + resolver (AST resources)
 ---------------------------------------------------
-[ ] Define `IResource<TContent>` representation for AST resources.
+[x] Define `IResource<TContent>` representation for AST resources.
 	- Use TinyPreprocessor.Core `Resource<TContent>` unless custom metadata is needed.
-[ ] Implement in-memory resource store for tests/examples.
-[ ] Implement `IResourceResolver<TContent>`.
+[x] Implement in-memory resource store for tests/examples.
+[x] Implement `IResourceResolver<TContent>`.
 	- Resolve relative references against `context.Id` when appropriate.
 	- Return `ResourceResolutionResult<TContent>.Success(...)` or `.Failure(...)`.
-[ ] Ensure failure diagnostics point to the import node.
+[x] Ensure failure diagnostics point to the import node.
 	- Requires wiring directive location into resolution failure diagnostics.
 	- If resolver signature lacks directive context, implement a resolver wrapper that can map `reference` -> `(resourceId, range)` for the current resolution step.
 Acceptance
-	- Unresolvable reference produces `ResolutionFailedDiagnostic` with `Resource=context.Id` and `Location=directive.Location`.
+	[x] Unresolvable reference produces `ResolutionFailedDiagnostic` with `Resource=context.Id` and `Location=directive.Location`.
 
 
 PHASE 4 — Content model (`IContentModel<TContent>`)
