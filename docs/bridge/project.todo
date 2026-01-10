@@ -45,15 +45,16 @@ Acceptance
 
 PHASE 2 — Directive parsing from SyntaxTree (Query-based)
 --------------------------------------------------------
-[ ] Implement `IDirectiveParser<TContent, ImportDirective>`.
+
+[x] Implement `IDirectiveParser<TContent, ImportDirective>`.
 	- Require schema-bound trees (`HasSchema == true`).
 	- Use `Query.Syntax<TImportNode>()` to find import nodes.
 	- Convert to directives with node-start anchored location.
-[ ] Ensure deterministic ordering (document order from Query results).
-[ ] Define behavior for malformed import nodes (e.g., Reference empty).
+[x] Ensure deterministic ordering (document order from Query results).
+[x] Define behavior for malformed import nodes (e.g., Reference empty).
 Acceptance
-	- Given a schema-bound tree with N import nodes, parser yields N directives.
-	- Locations match node start positions exactly.
+	[x] Given a schema-bound tree with N import nodes, parser yields N directives.
+	[x] Locations match node start positions exactly.
 
 
 PHASE 3 — Resource store + resolver (AST resources)
