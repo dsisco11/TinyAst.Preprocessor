@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="TinyAst" Version="*" />
-    <PackageReference Include="TinyPreprocessor" Version="*" />
+    <PackageReference Include="TinyAst" Version="0.11.0" />
+    <PackageReference Include="TinyPreprocessor" Version="0.3.0" />
   </ItemGroup>
 
 </Project>

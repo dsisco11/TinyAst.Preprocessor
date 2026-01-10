@@ -1,20 +1,14 @@
-# Generic TinyPreprocessor Contracts (Assumed)
+# Generic TinyPreprocessor Contracts (TinyPreprocessor 0.3.0)
 
-This bridge is designed under the assumption that TinyPreprocessor will be made **generic over content** (and, ideally, over location types) so it can operate on AST content directly.
+TinyPreprocessor 0.3.0 is generic over **content**. This bridge will target that API surface.
 
-## Why Generics Are Needed
+## Why Content Generics Matter
 
-The current TinyPreprocessor surface is text-oriented:
+Historically, TinyPreprocessor operated on text content. With 0.3.0, the pipeline can operate on any `TContent` as long as an `IContentModel<TContent>` is provided.
 
-- `IResource.Content : ReadOnlyMemory<char>`
-- `IDirective.Location : Range` (offsets into the text)
-- Merge strategies output `ReadOnlyMemory<char>`
+## Actual Core Abstractions
 
-To support a SyntaxTree/SyntaxNode-driven pipeline without materializing text, TinyPreprocessor needs to operate on a non-text content model.
-
-## Proposed Minimal Generic Shape
-
-A workable minimal generic set (names illustrative):
+TinyPreprocessor 0.3.0 is built around these abstractions:
 
 - `IResource<TContent>`
 
@@ -22,53 +16,61 @@ A workable minimal generic set (names illustrative):
   - `TContent Content`
   - `IReadOnlyDictionary<string, object> Metadata`
 
-- `IDirective<TLocation>`
-
-  - `TLocation Location`
-
-- `IIncludeDirective<TLocation> : IDirective<TLocation>`
-
-  - `string Reference`
-
-- `IDirectiveParser<TDirective, TContent>`
+- `IDirectiveParser<TContent, TDirective>`
 
   - `IEnumerable<TDirective> Parse(TContent content, ResourceId resourceId)`
 
-- `IMergeStrategy<TContext, TContent, TLocation>`
+- `IDirectiveModel<TDirective>`
 
-  - `TContent Merge(IReadOnlyList<ResolvedResource<TContent, TLocation>> ordered, TContext context, MergeContext<TLocation> mergeContext)`
+  - `Range GetLocation(TDirective directive)`
+  - `bool TryGetReference(TDirective directive, out string reference)`
 
-- `PreprocessResult<TContent, TLocation>`
+- `IResourceResolver<TContent>`
+
+  - `ValueTask<ResourceResolutionResult<TContent>> ResolveAsync(string reference, IResource<TContent>? context, CancellationToken ct)`
+
+- `IMergeStrategy<TContent, TDirective, TContext>`
+
+  - `TContent Merge(IReadOnlyList<ResolvedResource<TContent, TDirective>> orderedResources, TContext userContext, MergeContext<TContent, TDirective> mergeContext)`
+
+- `IContentModel<TContent>`
+
+  - `int GetLength(TContent content)`
+  - `TContent Slice(TContent content, int start, int length)`
+
+- `Preprocessor<TContent, TDirective, TContext>`
+
+  - `Task<PreprocessResult<TContent>> ProcessAsync(IResource<TContent> root, TContext context, PreprocessorOptions? options = null, CancellationToken ct = default)`
+
+- `PreprocessResult<TContent>`
   - `TContent Content`
-  - `ISourceMap<TLocation> SourceMap`
-  - `DiagnosticCollection<TLocation> Diagnostics`
+  - `SourceMap SourceMap`
+  - `DiagnosticCollection Diagnostics`
 
-This is intentionally minimal: it preserves TinyPreprocessor’s architecture while swapping out the content type.
+The important implication for this bridge is that **locations are still expressed as `System.Range`**. The meaning of those offsets is defined by `IContentModel<TContent>`.
 
-## Location Type for AST Pipelines
+## Locations for AST Pipelines
 
-For an AST pipeline, the bridge assumes locations are expressed in **TinyAst node coordinates**.
+For an AST pipeline, this bridge interprets TinyPreprocessor locations as:
 
-A practical location type:
+- absolute TinyAst character offsets (including trivia), i.e. `SyntaxNode.Position`
 
-- `(ResourceId Resource, int Position)`
+Directive locations are anchored to node start:
 
-Optionally expandable later to:
+- `Range = pos..pos`
 
-- `(ResourceId Resource, int Position, int Length)`
+This works naturally with `IDirectiveModel<TDirective>.GetLocation(...)`.
 
-Key decision (bridge): **anchor to node start** and treat length as 0 by default.
+## Notes on AST as Content
 
-## Notes on SyntaxNode as Content
+For this bridge, `TContent` should be chosen to work well with `SyntaxEditor`.
 
-Using `SyntaxNode` as `TContent` is possible but has tradeoffs:
+Practical options:
 
-- Red nodes are _ephemeral wrappers_ that point back to a `SyntaxTree`.
-- Merging across trees may be easier using green nodes (`GreenNode`) or a merged `SyntaxTree` root.
+- `SyntaxTree` (recommended) — merge strategy edits a `SyntaxTree` via `SyntaxEditor`.
+- `SyntaxNode` — possible, but red nodes are wrappers tied to a tree.
 
-If TinyPreprocessor requires a single `TContent` for the merged result, consider making `TContent`:
+Whichever is chosen, `IContentModel<TContent>` must define how to:
 
-- `SyntaxTree` (merged tree)
-- or `GreenNode` (merged green root)
-
-This doc uses `SyntaxNode` as the conceptual driver because that matches the desired API shape, but the final choice should optimize for immutability and ease of merging.
+- compute length (`GetLength`)
+- slice (`Slice`) in the same offset space used by `SyntaxNode.Position`

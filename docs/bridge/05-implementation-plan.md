@@ -11,12 +11,15 @@ We will **not implement** the AST-native bridge until TinyPreprocessor ships the
 ## Public Types (Bridge)
 
 - `IImportNode`
+
   - Implemented by downstream `SyntaxNode` types that represent imports/includes.
 
 - `ImportDirective`
+
   - Default directive produced by the bridge from `IImportNode` (location anchored to node start).
 
 - `ImportNodeResolver<TImportNode>`
+
   - Discovers downstream import nodes of type `TImportNode` (schema-bound).
   - Converts them into `ImportDirective` using `IImportNode.Reference`.
 

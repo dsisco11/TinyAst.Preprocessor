@@ -11,8 +11,8 @@ All coordinates are in **TinyAst syntax tree coordinates**:
 
 An import/include directive location is defined as:
 
-- `Position = ImportNode.Position`
-- `Location = (Position)` (a zero-length location)
+- `Position = importNode.Position`
+- `Location = Position..Position` (a zero-length `Range`)
 
 This means:
 
@@ -26,8 +26,8 @@ This means:
 
 All diagnostics produced by the bridge should be pinned to:
 
-- The `ResourceId` of the resource containing the `ImportNode`.
-- The `ImportNode.Position` anchor.
+- The `ResourceId` of the resource containing the import node.
+- The import node `Position` anchor.
 
 Examples:
 
