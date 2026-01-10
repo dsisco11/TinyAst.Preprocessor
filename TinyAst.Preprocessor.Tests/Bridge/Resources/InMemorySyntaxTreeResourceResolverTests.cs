@@ -63,7 +63,7 @@ public class InMemorySyntaxTreeResourceResolverTests
         var mainId = new ResourceId("main");
         var main = new Resource<SyntaxTree>(mainId, tree);
 
-        var parser = ImportDirectiveParser<Bridge.Imports.TestImportNode>.Instance;
+        var parser = new ImportDirectiveParser<Bridge.Imports.TestImportNode>(n => n.Reference);
         var directive = Assert.Single(parser.Parse(tree, mainId));
 
         var locationIndex = new ImportDirectiveLocationIndex();

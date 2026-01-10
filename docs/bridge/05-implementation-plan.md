@@ -8,18 +8,14 @@ TinyPreprocessor now supports generic content (`TContent`). Implementation can p
 
 ## Public Types (Bridge)
 
-- `IImportNode`
-
-  - Implemented by downstream `SyntaxNode` types that represent imports/includes.
-
 - `ImportDirective`
 
-  - Default directive produced by the bridge from `IImportNode` (location anchored to node start).
+  - Default directive produced by the bridge (location anchored to node start).
 
-- `ImportNodeResolver<TImportNode>`
+- `ImportDirectiveParser<TImportNode>`
 
   - Discovers downstream import nodes of type `TImportNode` (schema-bound).
-  - Converts them into `ImportDirective` using `IImportNode.Reference`.
+  - Converts them into `ImportDirective` using a provided reference extractor delegate.
 
 - `SyntaxTreeResourceStore` + resolver
   - In-memory store keyed by `ResourceId`.
@@ -36,7 +32,7 @@ In addition to bridge-specific types, the bridge must provide concrete implement
 ## Processing Flow
 
 1. Root resource is a schema-bound syntax tree.
-2. Extract import directives by querying the tree for downstream import node types (`TImportNode : SyntaxNode, IImportNode`).
+2. Extract import directives by querying the tree for downstream import node types (`TImportNode : SyntaxNode`).
 3. Resolve referenced resources (also schema-bound trees).
 4. Merge resources into a single output tree, removing import nodes and splicing referenced content.
 5. Return merged output (`PreprocessResult<TContent>`) with diagnostics + source map.

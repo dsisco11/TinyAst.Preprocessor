@@ -35,11 +35,14 @@ public class PreprocessorIntegrationTests
     {
         var resolver = new InMemorySyntaxTreeResourceResolver(store, locationIndex);
 
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
+        var mergeStrategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
+
         return new Preprocessor<SyntaxTree, ImportDirective, object>(
-            ImportDirectiveParser<TestImportNode>.Instance,
+            parser,
             ImportDirectiveModel.Instance,
             resolver,
-            SyntaxTreeMergeStrategy<TestImportNode, object>.Instance,
+            mergeStrategy,
             SyntaxTreeContentModel.Instance);
     }
 
@@ -378,7 +381,7 @@ public class PreprocessorIntegrationTests
 
         // Create location index for the directive
         var locationIndex = new ImportDirectiveLocationIndex();
-        var parser = ImportDirectiveParser<TestImportNode>.Instance;
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
         foreach (var directive in parser.Parse(mainResource.Content, mainResource.Id))
         {
             locationIndex.Add(mainResource.Id, directive.Reference, directive.Location);

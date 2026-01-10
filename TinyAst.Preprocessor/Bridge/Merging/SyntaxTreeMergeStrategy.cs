@@ -11,7 +11,7 @@ namespace TinyAst.Preprocessor.Bridge.Merging;
 /// by replacing import nodes with the content from resolved resources using <see cref="SyntaxEditor"/>.
 /// </summary>
 /// <typeparam name="TImportNode">
-/// The downstream import node type implementing <see cref="IImportNode"/>.
+/// The downstream import node type.
 /// </typeparam>
 /// <typeparam name="TContext">User-provided context type.</typeparam>
 /// <remarks>
@@ -29,14 +29,14 @@ namespace TinyAst.Preprocessor.Bridge.Merging;
 /// </para>
 /// </remarks>
 public sealed class SyntaxTreeMergeStrategy<TImportNode, TContext> : IMergeStrategy<SyntaxTree, ImportDirective, TContext>
-    where TImportNode : SyntaxNode, IImportNode
+    where TImportNode : SyntaxNode
 {
-    /// <summary>
-    /// Gets the singleton instance of the merge strategy.
-    /// </summary>
-    public static SyntaxTreeMergeStrategy<TImportNode, TContext> Instance { get; } = new();
+    private readonly Func<TImportNode, string?> _getReference;
 
-    private SyntaxTreeMergeStrategy() { }
+    public SyntaxTreeMergeStrategy(Func<TImportNode, string?> getReference)
+    {
+        _getReference = getReference ?? throw new ArgumentNullException(nameof(getReference));
+    }
 
     /// <inheritdoc/>
     /// <remarks>
@@ -98,7 +98,7 @@ public sealed class SyntaxTreeMergeStrategy<TImportNode, TContext> : IMergeStrat
         return mergedTree;
     }
 
-    private static SyntaxTree ProcessResource(
+    private SyntaxTree ProcessResource(
         ResolvedResource<SyntaxTree, ImportDirective> resource,
         Dictionary<ResourceId, SyntaxTree> processedTrees,
         MergeContext<SyntaxTree, ImportDirective> context)
@@ -129,7 +129,7 @@ public sealed class SyntaxTreeMergeStrategy<TImportNode, TContext> : IMergeStrat
 
         foreach (var importNode in importNodes)
         {
-            var reference = importNode.Reference;
+            var reference = _getReference(importNode);
             if (string.IsNullOrWhiteSpace(reference))
             {
                 continue;

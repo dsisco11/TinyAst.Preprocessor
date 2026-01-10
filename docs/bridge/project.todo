@@ -9,7 +9,7 @@ Implement an AST-native preprocessor bridge on TinyPreprocessor 0.3.0 using Tiny
 Core constraints
 ----------------
 - Schema binding is required for import discovery.
-- Import nodes are downstream-defined `SyntaxNode` types implementing `IImportNode`.
+- Import nodes are downstream-defined `SyntaxNode` types; the bridge uses a reference-extractor delegate (no required interface).
 - Import extraction uses TinyAst Query: `tree.Select(Query.Syntax<TImportNode>())`.
 - All locations are TinyAst absolute offsets (trivia-inclusive): `Range = Position..Position`.
 - Merge uses TinyAst `SyntaxEditor` (no manual green-node manipulation).
@@ -31,8 +31,8 @@ Acceptance
 
 PHASE 1 — Bridge contracts + directive semantics
 -----------------------------------------------
-[x] Create `IImportNode` interface.
-	- `string Reference { get; }`
+[x] Use adapter-based reference extraction (no required interface).
+	- Parser/merge are configured with `Func<TImportNode, string?> getReference`.
 [x] Define directive type `ImportDirective`.
 	- Fields: `string Reference`, `Range Location`, optionally `ResourceId Resource`.
 [x] Implement `IDirectiveModel<ImportDirective>`.

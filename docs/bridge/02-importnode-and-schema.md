@@ -13,7 +13,7 @@ Downstream consumers should parse and bind using their schema (exact API depends
 
 ## Import Node Contract
 
-Downstream consumers define their own import node type (e.g., `MyImportNode`) and implement a bridge interface on it.
+Downstream consumers define their own import node type (e.g., `MyImportNode`) and provide the bridge with a way to extract the import reference.
 
 The bridge treats a downstream import node as:
 
@@ -28,11 +28,9 @@ The bridge does **not** assume:
 
 ## Discovering Import Nodes
 
-Directive extraction uses a bridge-provided generic resolver:
+Directive extraction uses TinyAst Query and a bridge-provided parser:
 
-- `ImportNodeResolver<TImportNode>`
-
-This avoids requiring downstream users to write queries or conversion logic.
+- `ImportDirectiveParser<TImportNode>`
 
 Internally, the resolver uses TinyAst's built-in Query system:
 
@@ -45,9 +43,9 @@ The bridge should treat discovery as:
 
 ## Extracting the Reference
 
-Downstream consumers expose the reference by implementing `IImportNode`:
+Downstream consumers expose the reference by providing a delegate:
 
-- `string Reference { get; }`
+- `Func<TImportNode, string?> getReference`
 
 If the reference is empty/whitespace:
 
@@ -73,4 +71,4 @@ Examples might include:
 - `import "path";`
 - `@use(path)`
 
-The bridge does not hardcode these; it only requires that matching syntax binds to the downstream node type and that it implements `IImportNode`.
+The bridge does not hardcode these; it only requires that matching syntax binds to the downstream node type and that a reference extractor is provided.

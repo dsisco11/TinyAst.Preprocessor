@@ -27,7 +27,7 @@ public class ImportDirectiveParserTests
         var tree = SyntaxTree.Parse("import \"a\"");
         Assert.False(tree.HasSchema);
 
-        var parser = ImportDirectiveParser<TestImportNode>.Instance;
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
 
         // Act
         var act = () => parser.Parse(tree, new ResourceId("main"))
@@ -47,7 +47,7 @@ public class ImportDirectiveParserTests
         Assert.True(tree.HasSchema);
 
         var resourceId = new ResourceId("main");
-        var parser = ImportDirectiveParser<TestImportNode>.Instance;
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
 
         // Expected positions must match TinyAst's trivia-inclusive coordinates.
         // Rather than assuming string indices, we take them from the bound nodes.
@@ -82,7 +82,7 @@ public class ImportDirectiveParserTests
         var schema = CreateTestSchema();
         var tree = SyntaxTree.ParseAndBind(text, schema);
 
-        var parser = ImportDirectiveParser<TestImportNode>.Instance;
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
         var resourceId = new ResourceId("main");
 
         // Act

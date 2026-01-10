@@ -4,11 +4,14 @@ using TinyTokenizer.Ast;
 namespace TinyAst.Preprocessor.Bridge.Imports;
 
 public sealed class ImportDirectiveParser<TImportNode> : IDirectiveParser<SyntaxTree, ImportDirective>
-    where TImportNode : SyntaxNode, IImportNode
+    where TImportNode : SyntaxNode
 {
-    public static ImportDirectiveParser<TImportNode> Instance { get; } = new();
+    private readonly Func<TImportNode, string?> _getReference;
 
-    private ImportDirectiveParser() { }
+    public ImportDirectiveParser(Func<TImportNode, string?> getReference)
+    {
+        _getReference = getReference ?? throw new ArgumentNullException(nameof(getReference));
+    }
 
     public IEnumerable<ImportDirective> Parse(SyntaxTree content, ResourceId resourceId)
     {
@@ -26,7 +29,7 @@ public sealed class ImportDirectiveParser<TImportNode> : IDirectiveParser<Syntax
 
         foreach (var node in importNodes)
         {
-            var reference = node.Reference;
+            var reference = _getReference(node);
             if (string.IsNullOrWhiteSpace(reference))
             {
                 continue;

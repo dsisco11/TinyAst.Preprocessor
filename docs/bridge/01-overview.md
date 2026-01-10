@@ -16,20 +16,16 @@ The key constraint is that **the syntax tree is the source of truth for import/i
 - Define a language-specific import grammar. Downstream consumers own the import shape.
 - Provide file-system/network resolution defaults beyond an explicit resolver contract.
 
-## Core Idea: IImportNode + ImportDirectiveParser (Schema Opt-In)
+## Core Idea: Schema-Bound Nodes + Reference Extractor (Schema Opt-In)
 
 TinyAst does not ship a built-in include/import node. Downstream consumers define their own.
-
-This bridge defines a canonical interface for downstream import nodes:
-
-- `IImportNode` (implemented by a downstream `SyntaxNode` type)
 
 Downstream consumers opt-in by:
 
 1. Defining syntax patterns in their TinyAst `Schema` that bind to their own `SyntaxNode` type (e.g., `MyImportNode`).
-2. Implementing `IImportNode` on that node type to expose the resolved reference string.
+2. Providing a reference-extractor delegate `Func<TImportNode, string?>` to the bridge.
 
-The bridge then discovers imports using `ImportDirectiveParser<TImportNode>` to locate nodes of that type in the schema-bound tree and convert them into `ImportDirective` records.
+The bridge discovers import nodes using `ImportDirectiveParser<TImportNode>` and converts them into `ImportDirective` records by calling the provided extractor.
 
 ## Coordinate Space + Locations
 
@@ -52,7 +48,6 @@ This enables consistent diagnostic pinning without forcing a "whole-node span" p
 
 | Component                            | Description                                                    |
 | ------------------------------------ | -------------------------------------------------------------- |
-| `IImportNode`                        | Interface for downstream import node types                     |
 | `ImportDirective`                    | Directive record with Reference, Location, optional Resource   |
 | `ImportDirectiveModel`               | `IDirectiveModel<ImportDirective>` implementation              |
 | `ImportDirectiveParser<T>`           | `IDirectiveParser<SyntaxTree, ImportDirective>` implementation |

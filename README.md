@@ -13,7 +13,7 @@ AST-native preprocessor bridge between [TinyAst](https://github.com/user/TinyAst
 This bridge enables AST-native import/include preprocessing:
 
 - Import directives are detected via schema-bound syntax trees, not text parsing
-- Downstream consumers define imports by implementing `IImportNode` on their `SyntaxNode` types
+- Downstream consumers define imports by binding a node type in their schema, and providing a reference-extractor delegate
 - Merging uses `SyntaxEditor` to inline resolved content directly into the AST
 - Source maps track original locations through the merge process
 
@@ -21,13 +21,12 @@ This bridge enables AST-native import/include preprocessing:
 
 ### 1. Define Your Import Node
 
-Create a `SyntaxNode` type that implements `IImportNode`:
+Create a `SyntaxNode` type for your import directive shape (no required interface):
 
 ```csharp
-using TinyAst.Preprocessor.Bridge.Imports;
 using TinyTokenizer.Ast;
 
-public sealed class MyImportNode : SyntaxNode, IImportNode
+public sealed class MyImportNode : SyntaxNode
 {
     public MyImportNode(CreationContext context) : base(context) { }
 
@@ -89,11 +88,14 @@ var libTree = SyntaxTree.ParseAndBind(libSource, schema);
 store.Add(new Resource<SyntaxTree>(new ResourceId("lib"), libTree));
 
 // Create the preprocessor
+var parser = new ImportDirectiveParser<MyImportNode>(n => n.Reference);
+var mergeStrategy = new SyntaxTreeMergeStrategy<MyImportNode, object>(n => n.Reference);
+
 var preprocessor = new Preprocessor<SyntaxTree, ImportDirective, object>(
-    ImportDirectiveParser<MyImportNode>.Instance,
+    parser,
     ImportDirectiveModel.Instance,
     new InMemorySyntaxTreeResourceResolver(store),
-    SyntaxTreeMergeStrategy<MyImportNode, object>.Instance,
+    mergeStrategy,
     SyntaxTreeContentModel.Instance);
 
 // Process
@@ -122,7 +124,6 @@ else
 
 | Type                                 | Namespace          | Description                                         |
 | ------------------------------------ | ------------------ | --------------------------------------------------- |
-| `IImportNode`                        | `Bridge.Imports`   | Interface for downstream import node types          |
 | `ImportDirective`                    | `Bridge.Imports`   | Directive record with Reference, Location, Resource |
 | `ImportDirectiveModel`               | `Bridge.Imports`   | `IDirectiveModel<ImportDirective>` implementation   |
 | `ImportDirectiveParser<T>`           | `Bridge.Imports`   | `IDirectiveParser<SyntaxTree, ImportDirective>`     |

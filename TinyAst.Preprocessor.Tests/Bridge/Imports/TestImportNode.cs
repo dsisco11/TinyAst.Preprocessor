@@ -1,9 +1,8 @@
-using TinyAst.Preprocessor.Bridge.Imports;
 using TinyTokenizer.Ast;
 
 namespace TinyAst.Preprocessor.Tests.Bridge.Imports;
 
-public sealed class TestImportNode : SyntaxNode, IImportNode
+public sealed class TestImportNode : SyntaxNode
 {
     public TestImportNode(CreationContext context)
         : base(context)

@@ -56,7 +56,7 @@ public class SyntaxTreeMergeStrategyTests
     public void Merge_EmptyResources_ReturnsEmptyTree()
     {
         // Arrange
-        var strategy = SyntaxTreeMergeStrategy<TestImportNode, object>.Instance;
+        var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
         var context = CreateMergeContext();
 
         // Act
@@ -76,7 +76,7 @@ public class SyntaxTreeMergeStrategyTests
         var resolved = CreateResolvedResource(resource);
         var orderedResources = new List<ResolvedResource<SyntaxTree, ImportDirective>> { resolved };
 
-        var strategy = SyntaxTreeMergeStrategy<TestImportNode, object>.Instance;
+        var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
         var context = CreateMergeContext();
 
         // Act
@@ -99,7 +99,7 @@ public class SyntaxTreeMergeStrategyTests
         var libResource = CreateResource("lib", libSource, schema);
 
         // Parse directives from main
-        var parser = ImportDirectiveParser<TestImportNode>.Instance;
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
         var mainDirectives = parser.Parse(mainResource.Content, mainResource.Id).ToList();
 
         var libResolved = CreateResolvedResource(libResource);
@@ -112,7 +112,7 @@ public class SyntaxTreeMergeStrategyTests
             mainResolved
         };
 
-        var strategy = SyntaxTreeMergeStrategy<TestImportNode, object>.Instance;
+        var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
         var context = CreateMergeContext();
 
         // Act
@@ -139,7 +139,7 @@ public class SyntaxTreeMergeStrategyTests
         var aResource = CreateResource("a", aSource, schema);
         var bResource = CreateResource("b", bSource, schema);
 
-        var parser = ImportDirectiveParser<TestImportNode>.Instance;
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
         var mainDirectives = parser.Parse(mainResource.Content, mainResource.Id).ToList();
 
         var aResolved = CreateResolvedResource(aResource);
@@ -153,7 +153,7 @@ public class SyntaxTreeMergeStrategyTests
             mainResolved
         };
 
-        var strategy = SyntaxTreeMergeStrategy<TestImportNode, object>.Instance;
+        var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
         var context = CreateMergeContext();
 
         // Act
@@ -191,7 +191,7 @@ public class SyntaxTreeMergeStrategyTests
         var libResource = CreateResource("lib", libSource, schema);
         var helperResource = CreateResource("helper", helperSource, schema);
 
-        var parser = ImportDirectiveParser<TestImportNode>.Instance;
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
         var mainDirectives = parser.Parse(mainResource.Content, mainResource.Id).ToList();
         var libDirectives = parser.Parse(libResource.Content, libResource.Id).ToList();
 
@@ -207,7 +207,7 @@ public class SyntaxTreeMergeStrategyTests
             mainResolved
         };
 
-        var strategy = SyntaxTreeMergeStrategy<TestImportNode, object>.Instance;
+        var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
         var context = CreateMergeContext();
 
         // Act
@@ -235,7 +235,7 @@ public class SyntaxTreeMergeStrategyTests
         var resolved = CreateResolvedResource(resource);
         var orderedResources = new List<ResolvedResource<SyntaxTree, ImportDirective>> { resolved };
 
-        var strategy = SyntaxTreeMergeStrategy<TestImportNode, object>.Instance;
+        var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
         var context = CreateMergeContext();
 
         // Act
@@ -258,7 +258,7 @@ public class SyntaxTreeMergeStrategyTests
         var mainResource = CreateResource("main", mainSource, schema);
         var libResource = CreateResource("lib", libSource, schema);
 
-        var parser = ImportDirectiveParser<TestImportNode>.Instance;
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
         var mainDirectives = parser.Parse(mainResource.Content, mainResource.Id).ToList();
 
         var libResolved = CreateResolvedResource(libResource);
@@ -270,7 +270,7 @@ public class SyntaxTreeMergeStrategyTests
             mainResolved
         };
 
-        var strategy = SyntaxTreeMergeStrategy<TestImportNode, object>.Instance;
+        var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
         var context = CreateMergeContext();
 
         // Act
@@ -295,7 +295,7 @@ public class SyntaxTreeMergeStrategyTests
         var resolved = CreateResolvedResource(resource);
         var orderedResources = new List<ResolvedResource<SyntaxTree, ImportDirective>> { resolved };
 
-        var strategy = SyntaxTreeMergeStrategy<TestImportNode, object>.Instance;
+        var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
         var context = CreateMergeContext();
 
         // Act
@@ -321,7 +321,7 @@ public class SyntaxTreeMergeStrategyTests
         var mainResource = CreateResource("main", mainSource, schema);
         var libResource = CreateResource("lib", libSource, schema);
 
-        var parser = ImportDirectiveParser<TestImportNode>.Instance;
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
         var mainDirectives = parser.Parse(mainResource.Content, mainResource.Id).ToList();
 
         var libResolved = CreateResolvedResource(libResource);
@@ -333,7 +333,7 @@ public class SyntaxTreeMergeStrategyTests
             mainResolved
         };
 
-        var strategy = SyntaxTreeMergeStrategy<TestImportNode, object>.Instance;
+        var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
         var context = CreateMergeContext();
 
         // Act
@@ -356,7 +356,7 @@ public class SyntaxTreeMergeStrategyTests
         var mainResource = CreateResource("main", mainSource, schema);
         var libResource = CreateResource("lib", libSource, schema);
 
-        var parser = ImportDirectiveParser<TestImportNode>.Instance;
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
         var mainDirectives = parser.Parse(mainResource.Content, mainResource.Id).ToList();
 
         var libResolved = CreateResolvedResource(libResource);
@@ -368,7 +368,7 @@ public class SyntaxTreeMergeStrategyTests
             mainResolved
         };
 
-        var strategy = SyntaxTreeMergeStrategy<TestImportNode, object>.Instance;
+        var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
         var context = CreateMergeContext();
 
         // Act
@@ -395,7 +395,7 @@ public class SyntaxTreeMergeStrategyTests
         var aResource = CreateResource("a", aSource, schema);
         var bResource = CreateResource("b", bSource, schema);
 
-        var parser = ImportDirectiveParser<TestImportNode>.Instance;
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
         var mainDirectives = parser.Parse(mainResource.Content, mainResource.Id).ToList();
 
         var aResolved = CreateResolvedResource(aResource);
@@ -409,7 +409,7 @@ public class SyntaxTreeMergeStrategyTests
             mainResolved
         };
 
-        var strategy = SyntaxTreeMergeStrategy<TestImportNode, object>.Instance;
+        var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
         var context = CreateMergeContext();
 
         // Act
