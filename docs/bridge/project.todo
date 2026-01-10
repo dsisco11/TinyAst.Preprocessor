@@ -74,16 +74,16 @@ Acceptance
 
 PHASE 4 — Content model (`IContentModel<TContent>`)
 --------------------------------------------------
-[ ] Implement `IContentModel<TContent>`.
+[x] Implement `IContentModel<TContent>`.
 	- `GetLength(content)` returns length in node coordinate units.
 	- `Slice(content, start, length)` works in the same offset space.
-[ ] Confirm consistency:
+[x] Confirm consistency:
 	- For any node, `0 <= Position <= GetLength(content)`.
-[ ] Add tests for slicing edge cases.
+[x] Add tests for slicing edge cases.
 	- start/length bounds
 	- zero-length slices
 Acceptance
-	- Property-based or table-driven tests demonstrating slice/length correctness.
+	[x] Property-based or table-driven tests demonstrating slice/length correctness.
 
 
 PHASE 5 — Merge strategy (SyntaxEditor)
