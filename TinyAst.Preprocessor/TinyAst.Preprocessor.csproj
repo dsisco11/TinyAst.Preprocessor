@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="TinyAst" Version="*" />
+    <PackageReference Include="TinyPreprocessor" Version="*" />
+  </ItemGroup>
+
 </Project>
