@@ -5,7 +5,7 @@
 This repository provides an integration bridge between:
 
 - **TinyAst** (`TinyTokenizer.Ast`) — a schema-bound syntax tree with typed `SyntaxNode` wrappers and queries.
-- **TinyPreprocessor** — a preprocessing pipeline that resolves dependencies, merges content, and produces diagnostics + source mapping.
+- **TinyPreprocessor** (0.3.0+) — a generic preprocessing pipeline that resolves dependencies, merges content, and produces diagnostics + source mapping.
 
 The bridge direction is **SyntaxTree → Preprocessor**.
 
@@ -16,7 +16,7 @@ The key constraint is that **the syntax tree is the source of truth for import/i
 - Define a language-specific import grammar. Downstream consumers own the import shape.
 - Provide file-system/network resolution defaults beyond an explicit resolver contract.
 
-## Core Idea: IImportNode + ImportNodeResolver (Schema Opt-In)
+## Core Idea: IImportNode + ImportDirectiveParser (Schema Opt-In)
 
 TinyAst does not ship a built-in include/import node. Downstream consumers define their own.
 
@@ -29,27 +29,34 @@ Downstream consumers opt-in by:
 1. Defining syntax patterns in their TinyAst `Schema` that bind to their own `SyntaxNode` type (e.g., `MyImportNode`).
 2. Implementing `IImportNode` on that node type to expose the resolved reference string.
 
-The bridge then discovers imports by using `ImportNodeResolver<TImportNode>` to locate nodes of that type in the schema-bound tree and convert them into directives.
+The bridge then discovers imports using `ImportDirectiveParser<TImportNode>` to locate nodes of that type in the schema-bound tree and convert them into `ImportDirective` records.
 
 ## Coordinate Space + Locations
 
 All directive locations and diagnostic locations are expressed in **TinyAst node coordinates**, i.e. absolute character offsets from the owning tree.
 
-- Locations anchor to the import node’s **absolute start position** (including trivia).
-- Locations are represented as **zero-length ranges** at that start offset.
+- Locations anchor to the import node's **absolute start position** (including trivia).
+- Locations are represented as **zero-length ranges** at that start offset: `Position..Position`.
 
-This enables consistent diagnostic pinning without forcing a “whole-node span” policy.
+This enables consistent diagnostic pinning without forcing a "whole-node span" policy.
 
-## Pipeline (Conceptual)
+## Pipeline (Implemented)
 
-1. **Root resource** is represented as a syntax tree (or root syntax node).
-2. **Directive extraction** queries the tree for `ImportNode` instances.
-3. **Resolution** maps each import reference to another resource (syntax tree).
-4. **Merge** combines resolved resources into a merged output (also in AST form in the generic design).
-5. **Result** includes merged content + source map + diagnostics.
+1. **Root resource** is a schema-bound `SyntaxTree` wrapped in `IResource<SyntaxTree>`.
+2. **Directive extraction** uses `ImportDirectiveParser<TImportNode>` to query the tree for import nodes via `Query.Syntax<TImportNode>()`.
+3. **Resolution** uses `IResourceResolver<SyntaxTree>` to map each import reference to another resource.
+4. **Merge** uses `SyntaxTreeMergeStrategy<TImportNode, TContext>` to combine resolved resources via `SyntaxEditor`, directly inlining AST nodes.
+5. **Result** includes merged `SyntaxTree` + source map + diagnostics.
 
-## Notes About Generic TinyPreprocessor
+## Implemented Components
 
-These docs assume TinyPreprocessor will evolve to be generic over content (and locations), so it can operate on AST rather than `ReadOnlyMemory<char>`.
-
-- The bridge will target the generic API so it can avoid materializing and re-parsing text.
+| Component                            | Description                                                    |
+| ------------------------------------ | -------------------------------------------------------------- |
+| `IImportNode`                        | Interface for downstream import node types                     |
+| `ImportDirective`                    | Directive record with Reference, Location, optional Resource   |
+| `ImportDirectiveModel`               | `IDirectiveModel<ImportDirective>` implementation              |
+| `ImportDirectiveParser<T>`           | `IDirectiveParser<SyntaxTree, ImportDirective>` implementation |
+| `SyntaxTreeContentModel`             | `IContentModel<SyntaxTree>` implementation                     |
+| `SyntaxTreeMergeStrategy<T,C>`       | `IMergeStrategy` using SyntaxEditor for AST merge              |
+| `InMemorySyntaxTreeResourceStore`    | In-memory resource store                                       |
+| `InMemorySyntaxTreeResourceResolver` | Resolver backed by in-memory store                             |

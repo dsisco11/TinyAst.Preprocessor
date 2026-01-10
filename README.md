@@ -1,20 +1,150 @@
 # TinyAst.Preprocessor
 
-Integration bridge between `TinyTokenizer.Ast` (TinyAst) and `TinyPreprocessor`.
+AST-native preprocessor bridge between [TinyAst](https://github.com/user/TinyAst) (TinyTokenizer.Ast) and [TinyPreprocessor](https://github.com/user/TinyPreprocessor).
 
-This bridge is designed around the direction **SyntaxTree → Preprocessor**:
+## Requirements
 
-- Import/include directives are detected by the syntax tree (schema-bound), not by re-parsing text.
-- Downstream consumers define what constitutes an import by binding their schema patterns to their own `SyntaxNode` type that implements `IImportNode`.
+- **TinyPreprocessor 0.3.0+** (generic content API)
+- **TinyAst 0.11.0+** (schema binding, SyntaxEditor)
+- **.NET 8.0+**
 
-## Status
+## Overview
 
-Design docs only. Implementation is intentionally paused until TinyPreprocessor is generic over content/location.
+This bridge enables AST-native import/include preprocessing:
 
-## Docs
+- Import directives are detected via schema-bound syntax trees, not text parsing
+- Downstream consumers define imports by implementing `IImportNode` on their `SyntaxNode` types
+- Merging uses `SyntaxEditor` to inline resolved content directly into the AST
+- Source maps track original locations through the merge process
+
+## Quick Start
+
+### 1. Define Your Import Node
+
+Create a `SyntaxNode` type that implements `IImportNode`:
+
+```csharp
+using TinyAst.Preprocessor.Bridge.Imports;
+using TinyTokenizer.Ast;
+
+public sealed class MyImportNode : SyntaxNode, IImportNode
+{
+    public MyImportNode(CreationContext context) : base(context) { }
+
+    public string Reference
+    {
+        get
+        {
+            // Extract the import path from your node's children
+            // Example: import "path/to/file"
+            var stringToken = Children
+                .OfType<SyntaxToken>()
+                .FirstOrDefault(t => t.Kind == NodeKind.String);
+
+            if (stringToken is null)
+                return string.Empty;
+
+            var text = stringToken.Text;
+            // Strip quotes
+            return text.Length >= 2 && text[0] == '"' && text[^1] == '"'
+                ? text[1..^1]
+                : text;
+        }
+    }
+}
+```
+
+### 2. Register in Your Schema
+
+```csharp
+var importPattern = new PatternBuilder()
+    .Ident("import")
+    .String()
+    .BuildQuery();
+
+var schema = Schema.Create()
+    .DefineSyntax<MyImportNode>("Import", b => b.Match(importPattern))
+    .Build();
+```
+
+### 3. Wire Up the Preprocessor
+
+```csharp
+using TinyAst.Preprocessor.Bridge.Content;
+using TinyAst.Preprocessor.Bridge.Imports;
+using TinyAst.Preprocessor.Bridge.Merging;
+using TinyAst.Preprocessor.Bridge.Resources;
+using TinyPreprocessor;
+using TinyPreprocessor.Core;
+
+// Create resource store and add your resources
+var store = new InMemorySyntaxTreeResourceStore();
+
+var mainTree = SyntaxTree.ParseAndBind(mainSource, schema);
+var mainResource = new Resource<SyntaxTree>(new ResourceId("main"), mainTree);
+store.Add(mainResource);
+
+// Add other resources that can be imported
+var libTree = SyntaxTree.ParseAndBind(libSource, schema);
+store.Add(new Resource<SyntaxTree>(new ResourceId("lib"), libTree));
+
+// Create the preprocessor
+var preprocessor = new Preprocessor<SyntaxTree, ImportDirective, object>(
+    ImportDirectiveParser<MyImportNode>.Instance,
+    ImportDirectiveModel.Instance,
+    new InMemorySyntaxTreeResourceResolver(store),
+    SyntaxTreeMergeStrategy<MyImportNode, object>.Instance,
+    SyntaxTreeContentModel.Instance);
+
+// Process
+var result = await preprocessor.ProcessAsync(
+    mainResource,
+    context: null!,
+    PreprocessorOptions.Default);
+
+if (result.Success)
+{
+    // result.Content is the merged SyntaxTree
+    Console.WriteLine(result.Content.ToText());
+}
+else
+{
+    foreach (var diagnostic in result.Diagnostics)
+    {
+        Console.WriteLine(diagnostic);
+    }
+}
+```
+
+## Public API
+
+### Core Types
+
+| Type                                 | Namespace          | Description                                         |
+| ------------------------------------ | ------------------ | --------------------------------------------------- |
+| `IImportNode`                        | `Bridge.Imports`   | Interface for downstream import node types          |
+| `ImportDirective`                    | `Bridge.Imports`   | Directive record with Reference, Location, Resource |
+| `ImportDirectiveModel`               | `Bridge.Imports`   | `IDirectiveModel<ImportDirective>` implementation   |
+| `ImportDirectiveParser<T>`           | `Bridge.Imports`   | `IDirectiveParser<SyntaxTree, ImportDirective>`     |
+| `SyntaxTreeContentModel`             | `Bridge.Content`   | `IContentModel<SyntaxTree>` implementation          |
+| `SyntaxTreeMergeStrategy<T,C>`       | `Bridge.Merging`   | `IMergeStrategy` using SyntaxEditor                 |
+| `InMemorySyntaxTreeResourceStore`    | `Bridge.Resources` | In-memory resource store for testing                |
+| `InMemorySyntaxTreeResourceResolver` | `Bridge.Resources` | Resolver using the in-memory store                  |
+
+### Key Constraints
+
+- **Schema binding is required**: Trees must have `HasSchema == true`
+- **Locations are absolute offsets**: TinyAst node coordinates (trivia-inclusive)
+- **No text reparsing**: Merge operates directly on AST nodes via `SyntaxEditor`
+
+## Documentation
 
 - [Bridge Overview](docs/bridge/01-overview.md)
 - [ImportNode + Schema Binding](docs/bridge/02-importnode-and-schema.md)
-- [Generic TinyPreprocessor Contracts (Assumed)](docs/bridge/03-generic-preprocessor-contracts.md)
-- [Source Mapping + Diagnostics (Node Coordinates)](docs/bridge/04-source-mapping-and-diagnostics.md)
-- [Bridge Implementation Plan](docs/bridge/05-implementation-plan.md)
+- [Generic TinyPreprocessor Contracts](docs/bridge/03-generic-preprocessor-contracts.md)
+- [Source Mapping + Diagnostics](docs/bridge/04-source-mapping-and-diagnostics.md)
+- [Implementation Plan](docs/bridge/05-implementation-plan.md)
+
+## License
+
+See [LICENSE.txt](LICENSE.txt).

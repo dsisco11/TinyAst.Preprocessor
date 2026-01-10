@@ -124,12 +124,12 @@ Acceptance
 
 PHASE 7 — Documentation + packaging
 ----------------------------------
-[ ] Update README with:
+[x] Update README with:
 	- current TinyPreprocessor version requirement (0.3.0+)
 	- how downstream users define `MyImportNode`
 	- minimal wiring snippet
-[ ] Ensure docs/bridge/ are consistent with shipped API and implementation.
-[ ] Decide on public surface area to keep stable (namespaces, type names).
+[x] Ensure docs/bridge/ are consistent with shipped API and implementation.
+[x] Decide on public surface area to keep stable (namespaces, type names).
 Acceptance
-	- README describes a runnable usage path.
+	[x] README describes a runnable usage path.
 
