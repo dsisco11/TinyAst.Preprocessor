@@ -88,21 +88,21 @@ Acceptance
 
 PHASE 5 — Merge strategy (SyntaxEditor)
 --------------------------------------
-[ ] Implement `IMergeStrategy<TContent, ImportDirective, TContext>`.
+[x] Implement `IMergeStrategy<TContent, ImportDirective, TContext>`.
 	- Input: ordered resources (deps first) + MergeContext.
 	- Use `SyntaxEditor` to:
 	  - remove import nodes
 	  - splice referenced content at each import site
-[ ] Define splicing semantics.
+[x] Define splicing semantics.
 	- What gets inserted (root children? full tree? block contents?)
 	- How to handle trivia between import node and surrounding nodes.
-[ ] Build source map.
+[x] Build source map.
 	- Use `mergeContext.SourceMapBuilder` to map generated offsets back to original resources.
 	- Decide mapping granularity (per-resource segments vs per-splice segments).
-[ ] Report merge-time diagnostics to `mergeContext.Diagnostics`.
+[x] Report merge-time diagnostics to `mergeContext.Diagnostics`.
 Acceptance
-	- End-to-end test: main + nested includes produce merged output tree with import nodes removed.
-	- Source map query at multiple offsets returns expected origin resource+offset.
+	[x] End-to-end test: main + nested includes produce merged output tree with import nodes removed.
+	[x] Source map query at multiple offsets returns expected origin resource+offset.
 
 
 PHASE 6 — End-to-end sample + acceptance suite
