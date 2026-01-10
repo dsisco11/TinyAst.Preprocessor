@@ -70,10 +70,7 @@ var schema = Schema.Create()
 
 ```csharp
 using TinyAst.Preprocessor.Bridge;
-using TinyAst.Preprocessor.Bridge.Content;
-using TinyAst.Preprocessor.Bridge.Imports;
 using TinyAst.Preprocessor.Bridge.Resources;
-using TinyPreprocessor;
 using TinyPreprocessor.Core;
 
 // Create resource store and add your resources
@@ -87,15 +84,10 @@ store.Add(mainResource);
 var libTree = SyntaxTree.ParseAndBind(libSource, schema);
 store.Add(new Resource<SyntaxTree>(new ResourceId("lib"), libTree));
 
-// Create bridge components (configure reference extraction once)
-var bridge = new SyntaxTreeBridge<MyImportNode, object>(n => n.Reference);
-
-var preprocessor = new Preprocessor<SyntaxTree, ImportDirective, object>(
-    bridge.Parser,
-    ImportDirectiveModel.Instance,
-    new InMemorySyntaxTreeResourceResolver(store),
-    bridge.MergeStrategy,
-    SyntaxTreeContentModel.Instance);
+// Create the preprocessor (defaults wired for SyntaxTree content)
+var preprocessor = new SyntaxTreePreprocessor<MyImportNode>(
+    store,
+    getReference: n => n.Reference);
 
 // Process
 var result = await preprocessor.ProcessAsync(
@@ -123,6 +115,8 @@ else
 
 | Type                                 | Namespace          | Description                                         |
 | ------------------------------------ | ------------------ | --------------------------------------------------- |
+| `SyntaxTreePreprocessor<T>`          | `Bridge`           | One-stop preprocessor setup (context = object)      |
+| `SyntaxTreePreprocessor<T,C>`        | `Bridge`           | One-stop preprocessor setup for SyntaxTree content  |
 | `SyntaxTreeBridge<T,C>`              | `Bridge`           | Convenience wrapper (parser + merge strategy)       |
 | `ImportDirective`                    | `Bridge.Imports`   | Directive record with Reference, Location, Resource |
 | `ImportDirectiveModel`               | `Bridge.Imports`   | `IDirectiveModel<ImportDirective>` implementation   |
