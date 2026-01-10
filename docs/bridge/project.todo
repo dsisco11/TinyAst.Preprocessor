@@ -31,16 +31,16 @@ Acceptance
 
 PHASE 1 — Bridge contracts + directive semantics
 -----------------------------------------------
-[ ] Create `IImportNode` interface.
+[x] Create `IImportNode` interface.
 	- `string Reference { get; }`
-[ ] Define directive type `ImportDirective`.
+[x] Define directive type `ImportDirective`.
 	- Fields: `string Reference`, `Range Location`, optionally `ResourceId Resource`.
-[ ] Implement `IDirectiveModel<ImportDirective>`.
+[x] Implement `IDirectiveModel<ImportDirective>`.
 	- `GetLocation(d) => d.Location`.
 	- `TryGetReference(d, out reference)` returns true only when reference is valid.
 	- Decide policy: whitespace/empty reference => non-dependency vs diagnostic.
 Acceptance
-	- A unit test verifying Location = Position..Position for a sample import node.
+	[x] A unit test verifying Location = Position..Position for a sample import node.
 
 
 PHASE 2 — Directive parsing from SyntaxTree (Query-based)
