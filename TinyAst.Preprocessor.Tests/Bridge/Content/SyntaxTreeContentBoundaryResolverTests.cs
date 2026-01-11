@@ -46,4 +46,25 @@ public class SyntaxTreeContentBoundaryResolverTests
         Assert.Equal(3, loc.OriginalOffset);
         Assert.Equal(1, loc.BoundaryIndex);
     }
+
+    [Fact]
+    public void TryFormatRange_MapsOffsetToLineColumn()
+    {
+        var schema = Schema.Default;
+        var text = "a\nb\nc";
+        var tree = SyntaxTree.ParseAndBind(text, schema);
+
+        var resolver = new SyntaxTreeLineBoundaryResolver();
+
+        // Offset 3 is on line 2 (1-based), column 2 (1-based).
+        var ok = SyntaxTreeLineColumnMapper.TryFormatRange(
+            tree,
+            new ResourceId("main"),
+            3..3,
+            resolver,
+            out var formatted);
+
+        Assert.True(ok);
+        Assert.Equal("2:2", formatted);
+    }
 }

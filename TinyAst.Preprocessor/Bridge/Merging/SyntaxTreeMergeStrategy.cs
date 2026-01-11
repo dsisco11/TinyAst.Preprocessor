@@ -1,6 +1,8 @@
 using TinyAst.Preprocessor.Bridge.Imports;
+using TinyAst.Preprocessor.Bridge.Content;
 using TinyPreprocessor.Core;
 using TinyPreprocessor.Merging;
+using TinyPreprocessor.Text;
 using TinyTokenizer.Ast;
 
 namespace TinyAst.Preprocessor.Bridge.Merging;
@@ -31,6 +33,7 @@ public class SyntaxTreeMergeStrategy<TImportNode, TContext> : IMergeStrategy<Syn
     where TImportNode : SyntaxNode
 {
     private readonly Func<TImportNode, string?> _getReference;
+    private static readonly IContentBoundaryResolver<SyntaxTree, LineBoundary> LineBoundaryResolver = new SyntaxTreeLineBoundaryResolver();
 
     /// <summary>
     /// Creates a merge strategy using a delegate that extracts the import reference from <typeparamref name="TImportNode"/>.
@@ -151,11 +154,21 @@ public class SyntaxTreeMergeStrategy<TImportNode, TContext> : IMergeStrategy<Syn
             var key = new MergeContext<SyntaxTree, ImportDirective>.ResolvedReferenceKey(resource.Id, directiveIndex);
             if (!context.ResolvedReferences.TryGetValue(key, out var resolvedId))
             {
+                var location = importNode.Position..importNode.Position;
+                string? lineColumn = null;
+                if (SyntaxTreeLineColumnMapper.TryFormatRange(content, resource.Id, location, LineBoundaryResolver, out var formatted))
+                {
+                    lineColumn = formatted;
+                }
+
                 context.Diagnostics.Add(
                     new MergeDiagnostic(
                         resource.Id,
-                        importNode.Position..importNode.Position,
-                        $"Missing resolved reference mapping for import: {reference}"));
+                        location,
+                        $"Missing resolved reference mapping for import: {reference}")
+                    {
+                        LineColumnLocation = lineColumn,
+                    });
 
                 editor.Remove(importNode);
                 continue;
@@ -180,11 +193,21 @@ public class SyntaxTreeMergeStrategy<TImportNode, TContext> : IMergeStrategy<Syn
             // If it is missing there too, this is a merge-time error.
             if (!context.ResolvedCache.TryGetValue(resolvedId, out _))
             {
+                var location = importNode.Position..importNode.Position;
+                string? lineColumn = null;
+                if (SyntaxTreeLineColumnMapper.TryFormatRange(content, resource.Id, location, LineBoundaryResolver, out var formatted))
+                {
+                    lineColumn = formatted;
+                }
+
                 context.Diagnostics.Add(
                     new MergeDiagnostic(
                         resource.Id,
-                        importNode.Position..importNode.Position,
-                        $"Could not resolve import reference: {reference} (resolved id: {resolvedId.Path})"));
+                        location,
+                        $"Could not resolve import reference: {reference} (resolved id: {resolvedId.Path})")
+                    {
+                        LineColumnLocation = lineColumn,
+                    });
 
                 editor.Remove(importNode);
             }
@@ -192,11 +215,21 @@ public class SyntaxTreeMergeStrategy<TImportNode, TContext> : IMergeStrategy<Syn
             {
                 // The resolved resource exists but wasn't processed yet.
                 // Keep behavior conservative: remove the import and report an error rather than producing partial output.
+                var location = importNode.Position..importNode.Position;
+                string? lineColumn = null;
+                if (SyntaxTreeLineColumnMapper.TryFormatRange(content, resource.Id, location, LineBoundaryResolver, out var formatted))
+                {
+                    lineColumn = formatted;
+                }
+
                 context.Diagnostics.Add(
                     new MergeDiagnostic(
                         resource.Id,
-                        importNode.Position..importNode.Position,
-                        $"Resolved dependency was not processed in merge order: {resolvedId.Path}"));
+                        location,
+                        $"Resolved dependency was not processed in merge order: {resolvedId.Path}")
+                    {
+                        LineColumnLocation = lineColumn,
+                    });
 
                 editor.Remove(importNode);
             }

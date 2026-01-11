@@ -1,4 +1,6 @@
 using TinyAst.Preprocessor.Bridge.Imports;
+using TinyAst.Preprocessor.Bridge.Content;
+using TinyAst.Preprocessor.Bridge.Diagnostics;
 using TinyAst.Preprocessor.Bridge.Resources;
 using TinyPreprocessor.Core;
 using TinyPreprocessor.Diagnostics;
@@ -83,5 +85,23 @@ public class InMemorySyntaxTreeResourceResolverTests
         Assert.Equal(directive.Reference, diagnostic.Reference);
         Assert.Equal(mainId, diagnostic.Resource);
         Assert.Equal(directive.Location, diagnostic.Location);
+
+        // And we can render a friendly line:column location using the boundary resolver.
+        var ok = PreprocessorDiagnosticFormatter.TryGetLineColumnLocation(
+            diagnostic,
+            id => id == mainId ? tree : null,
+            SyntaxTreeContentBoundaryResolverProvider.Instance,
+            out var lineColumn);
+
+        Assert.True(ok);
+        Assert.Equal("1:1", lineColumn);
+
+        var formatted = PreprocessorDiagnosticFormatter.FormatCSharp(
+            diagnostic,
+            id => id == mainId ? tree : null,
+            SyntaxTreeContentBoundaryResolverProvider.Instance);
+
+        Assert.Contains($"{mainId.Path}(1,1): ", formatted);
+        Assert.Contains($"error {diagnostic.Code}: ", formatted);
     }
 }
