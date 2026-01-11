@@ -61,15 +61,15 @@ Acceptance
 
 PHASE 3 — Keep canonicalization boundaries clean
 -----------------------------------------------
-[ ] Audit `ResourceIdPathResolver` usage.
+[x] Audit `ResourceIdPathResolver` usage.
 	- Allowed: in resolvers to map reference -> canonical id.
 	- Not allowed: in merge to identify dependencies.
-[ ] Confirm in-memory resolver/store keys align with canonical IDs.
+[x] Confirm in-memory resolver/store keys align with canonical IDs.
 	- Store must be keyed by canonical ids (whatever resolver returns), not by raw references.
-[ ] Verify diagnostic pinning remains correct when reference normalization differs from raw text.
+[x] Verify diagnostic pinning remains correct when reference normalization differs from raw text.
 	- Ensure `ImportDirectiveLocationIndex` lookups match the reference form used for diagnostics.
 Acceptance
-	[ ] Resolver failures still pinpoint the correct import node location.
+	[x] Resolver failures still pinpoint the correct import node location.
 
 
 PHASE 4 — Update tests + add new v0.4-specific coverage

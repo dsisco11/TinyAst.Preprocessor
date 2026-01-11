@@ -23,7 +23,9 @@ public sealed class InMemorySyntaxTreeResourceResolver : IResourceResolver<Synta
     {
         ct.ThrowIfCancellationRequested();
 
-        var resolvedId = ResourceIdPathResolver.Resolve(reference, context);
+        var referenceKey = reference.Trim();
+
+        var resolvedId = ResourceIdPathResolver.Resolve(referenceKey, context);
 
         if (_store.TryGet(resolvedId, out var resource))
         {
@@ -31,7 +33,7 @@ public sealed class InMemorySyntaxTreeResourceResolver : IResourceResolver<Synta
         }
 
         Range? location = null;
-        if (context is not null && _locationIndex is not null && _locationIndex.TryDequeue(context.Id, reference, out var loc))
+        if (context is not null && _locationIndex is not null && _locationIndex.TryDequeue(context.Id, referenceKey, out var loc))
         {
             location = loc;
         }

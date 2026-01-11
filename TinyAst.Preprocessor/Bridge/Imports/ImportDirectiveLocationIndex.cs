@@ -7,6 +7,8 @@ public sealed class ImportDirectiveLocationIndex
 {
     private readonly ConcurrentDictionary<(ResourceId Resource, string Reference), ConcurrentQueue<Range>> _locations = new();
 
+    private static string NormalizeReferenceKey(string reference) => reference.Trim();
+
     public void Add(ResourceId resource, string reference, Range location)
     {
         if (string.IsNullOrWhiteSpace(reference))
@@ -14,7 +16,8 @@ public sealed class ImportDirectiveLocationIndex
             return;
         }
 
-        var queue = _locations.GetOrAdd((resource, reference), _ => new ConcurrentQueue<Range>());
+        var key = NormalizeReferenceKey(reference);
+        var queue = _locations.GetOrAdd((resource, key), _ => new ConcurrentQueue<Range>());
         queue.Enqueue(location);
     }
 
@@ -27,7 +30,8 @@ public sealed class ImportDirectiveLocationIndex
             return false;
         }
 
-        if (!_locations.TryGetValue((resource, reference), out var queue))
+        var key = NormalizeReferenceKey(reference);
+        if (!_locations.TryGetValue((resource, key), out var queue))
         {
             return false;
         }
