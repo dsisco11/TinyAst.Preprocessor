@@ -14,6 +14,11 @@ public sealed record MergeDiagnostic(
     Range? Location,
     string Message) : IPreprocessorDiagnostic
 {
+    /// <summary>
+    /// Optional pre-formatted location text (e.g. <c>line:column</c>), typically computed using a content boundary resolver.
+    /// </summary>
+    public string? LineColumnLocation { get; init; }
+
     /// <inheritdoc/>
     public DiagnosticSeverity Severity => DiagnosticSeverity.Error;
 
@@ -22,7 +27,11 @@ public sealed record MergeDiagnostic(
 
     /// <inheritdoc/>
     public override string ToString() =>
-        Location.HasValue && Resource.HasValue
-            ? $"[{Code}] {Resource}: {Message} at {Location.Value}"
-            : $"[{Code}] {Resource}: {Message}";
+        Resource.HasValue
+            ? LineColumnLocation is not null
+                ? $"[{Code}]<{Resource}@{LineColumnLocation}>: {Message}"
+                : Location.HasValue
+                    ? $"[{Code}]<{Resource}@{Location.Value}>: {Message}"
+                    : $"[{Code}]<{Resource}>: {Message}"
+            : $"[{Code}]<{Resource}>: {Message}";
 }
