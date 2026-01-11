@@ -48,14 +48,14 @@ Acceptance
 
 PHASE 2 — Migrate merge strategy to authoritative resolved IDs
 -------------------------------------------------------------
-[ ] Update `SyntaxTreeMergeStrategy` to use the resolved-id mapping from merge context.
+[x] Update `SyntaxTreeMergeStrategy` to use the resolved-id mapping from merge context.
 	- Stop calling `ResourceIdPathResolver` (or any path-based derivation) to find dependency resource IDs.
 	- Use the resolved-id mapping keyed by directive occurrence to identify the dependency `ResourceId`.
-[ ] Ensure merge still applies edits deterministically.
+[x] Ensure merge still applies edits deterministically.
 	- Continue removing import nodes and splicing resolved content using `SyntaxEditor`.
-[ ] Ensure merge-time diagnostics include correct `ResourceId` and import location.
+[x] Ensure merge-time diagnostics include correct `ResourceId` and import location.
 Acceptance
-	[ ] Existing merge tests updated and green.
+	[x] Existing merge tests updated and green.
 	[ ] Merge succeeds when canonical ID differs from reference string.
 
 
@@ -85,6 +85,22 @@ PHASE 4 — Update tests + add new v0.4-specific coverage
 Acceptance
 	[ ] `dotnet test` green.
 	[ ] New tests fail on the pre-v0.4 merge strategy (proving they are meaningful).
+
+
+PHASE 4B — Prove no redundant merge work (unit tests)
+-----------------------------------------------------
+[ ] Add unit test: "shared dependency merged once".
+	- Graph: `main` imports `a` and `b`; both `a` and `b` import `shared`.
+	- Expectation: `shared` is merged/processed exactly once, and the merged output contains `shared` content only once (or in the single canonical location defined by the merge semantics).
+[ ] Add unit test: "include-of-include processed once".
+	- Graph: `main` imports `a`; `a` imports `shared`; `shared` imports `leaf`.
+	- Expectation: `shared` has its own includes merged exactly once even though it is itself an include.
+[ ] Add a test-only instrumentation strategy to measure work.
+	- Prefer: a wrapper around `IMergeStrategy` or a test-only derived merge strategy that increments a counter per `resourceId` when its content is processed.
+	- Avoid: asserting on incidental implementation details like dictionary ordering.
+Acceptance
+	[ ] Tests explicitly assert “processed count per ResourceId == 1”.
+	[ ] Tests fail if the merge processes the same ResourceId multiple times.
 
 
 PHASE 5 — Documentation updates

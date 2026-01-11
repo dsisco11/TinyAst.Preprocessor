@@ -1,5 +1,4 @@
 using TinyAst.Preprocessor.Bridge.Imports;
-using TinyAst.Preprocessor.Bridge.Resources;
 using TinyPreprocessor.Core;
 using TinyPreprocessor.Merging;
 using TinyTokenizer.Ast;
@@ -74,23 +73,17 @@ public sealed class SyntaxTreeMergeStrategy<TImportNode, TContext> : IMergeStrat
             return rootContent;
         }
 
-        // Build a lookup of processed trees by resource ID
-        // Process in dependency order so nested imports are already expanded
+        // Build a lookup of processed trees by resource ID.
+        // Process in dependency order so nested imports are already expanded.
         var processedTrees = new Dictionary<ResourceId, SyntaxTree>();
 
         foreach (var resource in orderedResources)
         {
-            if (resource == rootResource)
-            {
-                continue;
-            }
-
             var processedTree = ProcessResource(resource, processedTrees, context);
             processedTrees[resource.Id] = processedTree;
         }
 
-        // Process the root resource last
-        var mergedTree = ProcessResource(rootResource, processedTrees, context);
+        var mergedTree = processedTrees[rootResource.Id];
 
         // Build source map for the merged result
         BuildSourceMap(mergedTree, orderedResources, context);
@@ -111,15 +104,19 @@ public sealed class SyntaxTreeMergeStrategy<TImportNode, TContext> : IMergeStrat
             return content;
         }
 
-        // Find import nodes in this tree
-        var importNodes = content
+        // Find import nodes in this tree in the same order as the directive parser:
+        // document order + filtered to only nodes with valid references.
+        // This ordering is required because TinyPreprocessor v0.4 keys resolved references
+        // by (requestingResourceId, directiveIndex).
+        var importNodesByDirectiveIndex = content
             .Select(Query.Syntax<TImportNode>())
             .OfType<TImportNode>()
-            .OrderByDescending(n => n.Position) // Process in reverse order to preserve positions
-            .ThenByDescending(n => n.SiblingIndex)
+            .OrderBy(n => n.Position)
+            .ThenBy(n => n.SiblingIndex)
+            .Where(n => !string.IsNullOrWhiteSpace(_getReference(n)))
             .ToList();
 
-        if (importNodes.Count == 0)
+        if (importNodesByDirectiveIndex.Count == 0)
         {
             return content;
         }
@@ -127,41 +124,60 @@ public sealed class SyntaxTreeMergeStrategy<TImportNode, TContext> : IMergeStrat
         // Create editor for this tree
         var editor = content.CreateEditor(content.Schema!.ToTokenizerOptions());
 
-        foreach (var importNode in importNodes)
+        for (var directiveIndex = importNodesByDirectiveIndex.Count - 1; directiveIndex >= 0; directiveIndex--)
         {
+            var importNode = importNodesByDirectiveIndex[directiveIndex];
             var reference = _getReference(importNode);
-            if (string.IsNullOrWhiteSpace(reference))
-            {
-                continue;
-            }
 
-            // Resolve the reference to find the replacement tree
-            var resolvedId = ResourceIdPathResolver.Resolve(reference, resource.Resource);
-
-            if (processedTrees.TryGetValue(resolvedId, out var resolvedTree))
+            var key = new MergeContext<SyntaxTree, ImportDirective>.ResolvedReferenceKey(resource.Id, directiveIndex);
+            if (!context.ResolvedReferences.TryGetValue(key, out var resolvedId))
             {
-                // Get the children of the resolved tree's root to inline
-                var childrenToInline = resolvedTree.Root.Children.ToList();
-
-                if (childrenToInline.Count > 0)
-                {
-                    // Replace the import node with the resolved content's children
-                    editor.Replace(importNode, childrenToInline);
-                }
-                else
-                {
-                    // Empty resolved content - just remove the import
-                    editor.Remove(importNode);
-                }
-            }
-            else
-            {
-                // Reference not found - report diagnostic and remove the import
                 context.Diagnostics.Add(
                     new MergeDiagnostic(
                         resource.Id,
                         importNode.Position..importNode.Position,
-                        $"Could not resolve import reference: {reference}"));
+                        $"Missing resolved reference mapping for import: {reference}"));
+
+                editor.Remove(importNode);
+                continue;
+            }
+
+            if (processedTrees.TryGetValue(resolvedId, out var resolvedTree))
+            {
+                var childrenToInline = resolvedTree.Root.Children.ToList();
+                if (childrenToInline.Count > 0)
+                {
+                    editor.Replace(importNode, childrenToInline);
+                }
+                else
+                {
+                    editor.Remove(importNode);
+                }
+
+                continue;
+            }
+
+            // Dependency is not available in processedTrees; fall back to resolved cache.
+            // If it is missing there too, this is a merge-time error.
+            if (!context.ResolvedCache.TryGetValue(resolvedId, out _))
+            {
+                context.Diagnostics.Add(
+                    new MergeDiagnostic(
+                        resource.Id,
+                        importNode.Position..importNode.Position,
+                        $"Could not resolve import reference: {reference} (resolved id: {resolvedId.Path})"));
+
+                editor.Remove(importNode);
+            }
+            else
+            {
+                // The resolved resource exists but wasn't processed yet.
+                // Keep behavior conservative: remove the import and report an error rather than producing partial output.
+                context.Diagnostics.Add(
+                    new MergeDiagnostic(
+                        resource.Id,
+                        importNode.Position..importNode.Position,
+                        $"Resolved dependency was not processed in merge order: {resolvedId.Path}"));
 
                 editor.Remove(importNode);
             }

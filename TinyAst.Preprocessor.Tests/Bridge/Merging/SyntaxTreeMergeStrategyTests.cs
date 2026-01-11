@@ -26,13 +26,29 @@ public class SyntaxTreeMergeStrategyTests
             .Build();
     }
 
-    private static MergeContext<SyntaxTree, ImportDirective> CreateMergeContext()
+    private static MergeContext<SyntaxTree, ImportDirective> CreateMergeContext(
+        IReadOnlyList<ResolvedResource<SyntaxTree, ImportDirective>> orderedResources)
     {
+        var resolvedCache = orderedResources
+            .Select(r => r.Resource)
+            .ToDictionary(r => r.Id, r => (IResource<SyntaxTree>)r);
+
+        var resolvedReferences = new Dictionary<MergeContext<SyntaxTree, ImportDirective>.ResolvedReferenceKey, ResourceId>();
+
+        foreach (var resource in orderedResources)
+        {
+            for (var i = 0; i < resource.Directives.Count; i++)
+            {
+                var key = new MergeContext<SyntaxTree, ImportDirective>.ResolvedReferenceKey(resource.Id, i);
+                resolvedReferences[key] = new ResourceId(resource.Directives[i].Reference);
+            }
+        }
+
         return new MergeContext<SyntaxTree, ImportDirective>(
             new SourceMapBuilder(),
             new DiagnosticCollection(),
-            new Dictionary<ResourceId, IResource<SyntaxTree>>(),
-            new Dictionary<MergeContext<SyntaxTree, ImportDirective>.ResolvedReferenceKey, ResourceId>(),
+            resolvedCache,
+            resolvedReferences,
             ImportDirectiveModel.Instance,
             SyntaxTreeContentModel.Instance,
             null);
@@ -59,7 +75,7 @@ public class SyntaxTreeMergeStrategyTests
     {
         // Arrange
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext([]);
 
         // Act
         var result = strategy.Merge([], null!, context);
@@ -79,7 +95,7 @@ public class SyntaxTreeMergeStrategyTests
         var orderedResources = new List<ResolvedResource<SyntaxTree, ImportDirective>> { resolved };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -115,7 +131,7 @@ public class SyntaxTreeMergeStrategyTests
         };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -156,7 +172,7 @@ public class SyntaxTreeMergeStrategyTests
         };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -210,7 +226,7 @@ public class SyntaxTreeMergeStrategyTests
         };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -238,7 +254,7 @@ public class SyntaxTreeMergeStrategyTests
         var orderedResources = new List<ResolvedResource<SyntaxTree, ImportDirective>> { resolved };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -273,7 +289,7 @@ public class SyntaxTreeMergeStrategyTests
         };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -298,7 +314,7 @@ public class SyntaxTreeMergeStrategyTests
         var orderedResources = new List<ResolvedResource<SyntaxTree, ImportDirective>> { resolved };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -336,7 +352,7 @@ public class SyntaxTreeMergeStrategyTests
         };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -371,7 +387,7 @@ public class SyntaxTreeMergeStrategyTests
         };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -412,7 +428,7 @@ public class SyntaxTreeMergeStrategyTests
         };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
