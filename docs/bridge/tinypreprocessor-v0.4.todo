@@ -1,0 +1,110 @@
+```todo
+
+TinyAst.Preprocessor — TinyPreprocessor v0.4 Upgrade TODO
+========================================================
+
+Context
+-------
+TinyPreprocessor v0.4 includes a breaking change that fixes merge-time ResourceId resolution by making the resolver-produced (authoritative) resolved ResourceId available to merge per directive occurrence.
+
+Key behavioral change
+---------------------
+- Treat `ResourceId` as an opaque identity during merge.
+- Merge MUST NOT re-derive dependency IDs from raw directive reference strings (path heuristics).
+- Merge MUST use the resolved-id mapping produced during resolution (v0.4: `MergeContext.ResolvedReferences` or equivalent).
+
+Goal
+----
+Upgrade this bridge to TinyPreprocessor v0.4 while preserving existing behavior for path-like IDs and adding explicit coverage for:
+- non-path canonical ResourceIds (e.g., `domain:lib/shared`)
+- canonical resolved IDs that differ from the raw reference string (e.g., reference `lib/shared` resolves to `domain:lib/shared`)
+
+Core constraints
+----------------
+- Import discovery remains schema-bound and Query-based.
+- Directive ordering must be deterministic (document order) and stable for directive occurrence indexing.
+- `ResourceIdPathResolver` can remain as a resolver/helper for path-like schemes, but merge must not depend on it.
+
+
+PHASE 0 — Lock down v0.4 semantics (design gate)
+-----------------------------------------------
+[ ] Record the v0.4 breaking change summary in docs/bridge/ (what changed and why).
+[ ] Define the canonical "directive occurrence key" used to look up resolved IDs in merge.
+	- Decide whether it is `directiveIndex` (global per content), per-reference occurrence index, or another stable key.
+[ ] Document how directive ordering maps to the occurrence key.
+Acceptance
+	[ ] A short section added to docs/bridge/05-implementation-plan.md describing resolved-id usage in merge.
+
+
+PHASE 1 — Upgrade dependency + get the solution compiling
+--------------------------------------------------------
+[ ] Update NuGet reference(s) to TinyPreprocessor v0.4 in TinyAst.Preprocessor.csproj and tests.
+[ ] Fix compilation errors due to TinyPreprocessor API changes.
+	- Expected: `MergeContext<TContent, TDirective>` construction now requires a resolved-id mapping (e.g., `ResolvedReferences`).
+[ ] Update any adapter/wiring types impacted by the new merge context shape.
+Acceptance
+	[ ] `dotnet build` succeeds for solution.
+
+
+PHASE 2 — Migrate merge strategy to authoritative resolved IDs
+-------------------------------------------------------------
+[ ] Update `SyntaxTreeMergeStrategy` to use the resolved-id mapping from merge context.
+	- Stop calling `ResourceIdPathResolver` (or any path-based derivation) to find dependency resource IDs.
+	- Use the resolved-id mapping keyed by directive occurrence to identify the dependency `ResourceId`.
+[ ] Ensure merge still applies edits deterministically.
+	- Continue removing import nodes and splicing resolved content using `SyntaxEditor`.
+[ ] Ensure merge-time diagnostics include correct `ResourceId` and import location.
+Acceptance
+	[ ] Existing merge tests updated and green.
+	[ ] Merge succeeds when canonical ID differs from reference string.
+
+
+PHASE 3 — Keep canonicalization boundaries clean
+-----------------------------------------------
+[ ] Audit `ResourceIdPathResolver` usage.
+	- Allowed: in resolvers to map reference -> canonical id.
+	- Not allowed: in merge to identify dependencies.
+[ ] Confirm in-memory resolver/store keys align with canonical IDs.
+	- Store must be keyed by canonical ids (whatever resolver returns), not by raw references.
+[ ] Verify diagnostic pinning remains correct when reference normalization differs from raw text.
+	- Ensure `ImportDirectiveLocationIndex` lookups match the reference form used for diagnostics.
+Acceptance
+	[ ] Resolver failures still pinpoint the correct import node location.
+
+
+PHASE 4 — Update tests + add new v0.4-specific coverage
+-------------------------------------------------------
+[ ] Extend merge test harness to construct the new v0.4 merge context shape.
+	- Provide the resolved-id mapping needed by merge.
+[ ] Add unit test: "non-path canonical ResourceId merges".
+	- Example: `import "domain:lib/shared"` resolves/inlines a dependency stored under `domain:lib/shared`.
+[ ] Add integration test: "canonical ID differs from raw reference".
+	- Example: raw reference `lib/shared` maps to canonical `domain:lib/shared`; merge must inline canonical resource.
+[ ] (Optional hardening) Add test: duplicate references with distinct canonical targets.
+	- Two identical references in a file resolve to two different canonical IDs; occurrence indexing must be stable.
+Acceptance
+	[ ] `dotnet test` green.
+	[ ] New tests fail on the pre-v0.4 merge strategy (proving they are meaningful).
+
+
+PHASE 5 — Documentation updates
+-------------------------------
+[ ] Update README.md to state TinyPreprocessor v0.4 requirement and the new merge semantics.
+[ ] Update docs/bridge/ to clarify:
+	- `ResourceId` is not required to be path-like.
+	- Resolvers are the source of truth for canonical IDs.
+	- Merge uses resolved-id mapping, not path heuristics.
+Acceptance
+	[ ] Documentation matches shipped behavior and new tests.
+
+
+PHASE 6 — Regression checks + release readiness
+----------------------------------------------
+[ ] Run full test suite and ensure no behavior regressions for path-like IDs.
+[ ] Verify sample usage (if present) still runs and demonstrates merging.
+[ ] Decide version bump strategy for TinyAst.Preprocessor (breaking vs minor) based on public API changes.
+Acceptance
+	[ ] CI-equivalent checks pass locally.
+	[ ] Changelog/release notes prepared (if this repo publishes packages).
+
+```
