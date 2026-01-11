@@ -1,10 +1,34 @@
 # Implementation Plan (Bridge)
 
-This document describes how the bridge will be implemented using TinyPreprocessor's generic content API (TinyPreprocessor 0.3.0).
+This document describes how the bridge will be implemented using TinyPreprocessor's generic content API.
+
+## TinyPreprocessor v0.4 Merge Identity (Breaking Change)
+
+TinyPreprocessor v0.4 changes merge-time dependency identity resolution:
+
+- `ResourceId` is treated as an **opaque identity** during merge (it is not required to be path-like).
+- The resolver (during the resolution phase) is the **source of truth** for canonical `ResourceId` values.
+- Merge must use the resolver-produced resolved-id mapping (e.g., `MergeContext.ResolvedReferences`) to determine which dependency resource to inline for each directive occurrence.
+- Merge must **not** re-derive dependency IDs from raw directive reference strings (path heuristics), because resolvers may map a reference to a different canonical id (e.g., `lib/shared`  `domain:lib/shared`).
+
+### Directive Occurrence Key (for resolved-id lookup)
+
+This bridge defines the directive occurrence key as:
+
+- `directiveIndex`: the **0-based index** of a directive in the parser output for a given `(resourceId, content)`.
+
+Ordering rule:
+
+- Directive parsing yields directives in **document order**, sorted by import node start position (and then by sibling order if needed for stability).
+
+Implication:
+
+- The merge strategy must look up resolved dependency ids using the same `directiveIndex` ordering as the directive parser.
+- The merge strategy must not depend on the edit-application traversal order (which may be reverse-order for safe in-place edits).
 
 ## Status
 
-TinyPreprocessor now supports generic content (`TContent`). Implementation can proceed.
+TinyPreprocessor supports generic content (`TContent`). Implementation can proceed.
 
 ## Public Types (Bridge)
 
