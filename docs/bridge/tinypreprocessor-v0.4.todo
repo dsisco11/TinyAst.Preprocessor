@@ -125,13 +125,13 @@ Acceptance
 
 PHASE 5 — Documentation updates
 -------------------------------
-[ ] Update README.md to state TinyPreprocessor v0.4 requirement and the new merge semantics.
-[ ] Update docs/bridge/ to clarify:
+[x] Update README.md to state TinyPreprocessor v0.4 requirement and the new merge semantics.
+[x] Update docs/bridge/ to clarify:
 	- `ResourceId` is not required to be path-like.
 	- Resolvers are the source of truth for canonical IDs.
 	- Merge uses resolved-id mapping, not path heuristics.
 Acceptance
-	[ ] Documentation matches shipped behavior and new tests.
+	[x] Documentation matches shipped behavior and new tests.
 
 
 PHASE 6 — Regression checks + release readiness

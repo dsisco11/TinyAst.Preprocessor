@@ -5,7 +5,7 @@
 This repository provides an integration bridge between:
 
 - **TinyAst** (`TinyTokenizer.Ast`) — a schema-bound syntax tree with typed `SyntaxNode` wrappers and queries.
-- **TinyPreprocessor** (0.3.0+) — a generic preprocessing pipeline that resolves dependencies, merges content, and produces diagnostics + source mapping.
+- **TinyPreprocessor** (0.4.0+) — a generic preprocessing pipeline that resolves dependencies, merges content, and produces diagnostics + source mapping.
 
 The bridge direction is **SyntaxTree → Preprocessor**.
 
@@ -55,3 +55,12 @@ This enables consistent diagnostic pinning without forcing a "whole-node span" p
 | `SyntaxTreeMergeStrategy<T,C>`       | `IMergeStrategy` using SyntaxEditor for AST merge              |
 | `InMemorySyntaxTreeResourceStore`    | In-memory resource store                                       |
 | `InMemorySyntaxTreeResourceResolver` | Resolver backed by in-memory store                             |
+
+## TinyPreprocessor v0.4 merge semantics
+
+TinyPreprocessor v0.4 makes dependency identity explicit at merge-time:
+
+- `ResourceId` is treated as an **opaque identity** during merge (not required to be path-like).
+- Resolvers are the **source of truth** for canonical `ResourceId` values.
+- Merge uses the resolver-produced resolved-id mapping (`MergeContext.ResolvedReferences`) for each directive occurrence.
+- Merge must **not** re-derive dependency IDs from raw reference strings (path heuristics).
