@@ -32,8 +32,10 @@ public class SyntaxTreeMergeStrategyTests
             new SourceMapBuilder(),
             new DiagnosticCollection(),
             new Dictionary<ResourceId, IResource<SyntaxTree>>(),
+            new Dictionary<MergeContext<SyntaxTree, ImportDirective>.ResolvedReferenceKey, ResourceId>(),
             ImportDirectiveModel.Instance,
-            SyntaxTreeContentModel.Instance);
+            SyntaxTreeContentModel.Instance,
+            null);
     }
 
     private static IResource<SyntaxTree> CreateResource(string id, string source, Schema schema)

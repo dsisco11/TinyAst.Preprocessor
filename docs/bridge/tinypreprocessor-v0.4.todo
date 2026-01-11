@@ -38,12 +38,12 @@ Acceptance
 
 PHASE 1 — Upgrade dependency + get the solution compiling
 --------------------------------------------------------
-[ ] Update NuGet reference(s) to TinyPreprocessor v0.4 in TinyAst.Preprocessor.csproj and tests.
-[ ] Fix compilation errors due to TinyPreprocessor API changes.
+[x] Update NuGet reference(s) to TinyPreprocessor v0.4 in TinyAst.Preprocessor.csproj and tests.
+[x] Fix compilation errors due to TinyPreprocessor API changes.
 	- Expected: `MergeContext<TContent, TDirective>` construction now requires a resolved-id mapping (e.g., `ResolvedReferences`).
-[ ] Update any adapter/wiring types impacted by the new merge context shape.
+[x] Update any adapter/wiring types impacted by the new merge context shape.
 Acceptance
-	[ ] `dotnet build` succeeds for solution.
+	[x] `dotnet build` succeeds for solution.
 
 
 PHASE 2 — Migrate merge strategy to authoritative resolved IDs

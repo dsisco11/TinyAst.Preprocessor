@@ -38,12 +38,14 @@ public class PreprocessorIntegrationTests
         var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
         var mergeStrategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
 
-        return new Preprocessor<SyntaxTree, ImportDirective, object>(
+        var config = new PreprocessorConfiguration<SyntaxTree, ImportDirective, object>(
             parser,
             ImportDirectiveModel.Instance,
             resolver,
             mergeStrategy,
             SyntaxTreeContentModel.Instance);
+
+        return new Preprocessor<SyntaxTree, ImportDirective, object>(config);
     }
 
     private static IResource<SyntaxTree> CreateResource(string id, string source, Schema schema)
