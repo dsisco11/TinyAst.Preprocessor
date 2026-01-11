@@ -136,11 +136,11 @@ Acceptance
 
 PHASE 6 — Regression checks + release readiness
 ----------------------------------------------
-[ ] Run full test suite and ensure no behavior regressions for path-like IDs.
-[ ] Verify sample usage (if present) still runs and demonstrates merging.
-[ ] Decide version bump strategy for TinyAst.Preprocessor (breaking vs minor) based on public API changes.
+[x] Run full test suite and ensure no behavior regressions for path-like IDs.
+[x] Verify sample usage (if present) still runs and demonstrates merging.
+[x] Decide version bump strategy for TinyAst.Preprocessor (breaking vs minor) based on public API changes.
 Acceptance
-	[ ] CI-equivalent checks pass locally.
-	[ ] Changelog/release notes prepared (if this repo publishes packages).
+	[x] CI-equivalent checks pass locally.
+	[x] Changelog/release notes prepared (if this repo publishes packages).
 
 ```

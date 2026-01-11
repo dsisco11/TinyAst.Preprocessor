@@ -147,6 +147,10 @@ else
 - [Source Mapping + Diagnostics](docs/bridge/04-source-mapping-and-diagnostics.md)
 - [Implementation Plan](docs/bridge/05-implementation-plan.md)
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
 See [LICENSE.txt](LICENSE.txt).
