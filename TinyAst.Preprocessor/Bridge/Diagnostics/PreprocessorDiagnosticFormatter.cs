@@ -99,7 +99,7 @@ public static class PreprocessorDiagnosticFormatter
 
         var severity = ToCSharpSeverityText(diagnostic.Severity);
         var code = string.IsNullOrWhiteSpace(diagnostic.Code) ? "DIAG" : diagnostic.Code;
-        var message = ExtractMessage(diagnostic);
+        var message = diagnostic.Message ?? string.Empty;
 
         if (diagnostic.Resource is not { } resourceId)
         {
@@ -172,19 +172,6 @@ public static class PreprocessorDiagnosticFormatter
         DiagnosticSeverity.Info => "info",
         _ => severity.ToString().ToLowerInvariant(),
     };
-
-    private static string ExtractMessage(IPreprocessorDiagnostic diagnostic)
-    {
-        // Prefer a direct Message property when implemented by the diagnostic type.
-        // If not present, fall back to ToString() (best-effort).
-        var messageProp = diagnostic.GetType().GetProperty("Message");
-        if (messageProp?.GetValue(diagnostic) is string s && !string.IsNullOrWhiteSpace(s))
-        {
-            return s;
-        }
-
-        return diagnostic.ToString() ?? string.Empty;
-    }
 
     private static bool TryGetResource(IPreprocessorDiagnostic diagnostic, out ResourceId resourceId)
     {
