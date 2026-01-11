@@ -4,10 +4,29 @@ using TinyPreprocessor.Core;
 
 namespace TinyAst.Preprocessor.Bridge.Resources;
 
+/// <summary>
+/// Resolves path-like reference strings into <see cref="ResourceId"/> values.
+/// </summary>
+/// <remarks>
+/// This helper is intended for resolvers (canonicalization). Merge must not depend on path heuristics.
+/// </remarks>
 public static class ResourceIdPathResolver
 {
+    /// <summary>
+    /// Resolves <paramref name="reference"/> into a <see cref="ResourceId"/> relative to <paramref name="context"/>.
+    /// </summary>
+    /// <typeparam name="TContent">The resource content type.</typeparam>
+    /// <param name="reference">The raw reference string.</param>
+    /// <param name="context">The requesting resource (optional).</param>
+    /// <returns>The resolved resource id.</returns>
     public static ResourceId Resolve<TContent>(string reference, IResource<TContent>? context) => Resolve(reference, context?.Id);
 
+    /// <summary>
+    /// Resolves <paramref name="reference"/> into a <see cref="ResourceId"/> relative to <paramref name="contextId"/>.
+    /// </summary>
+    /// <param name="reference">The raw reference string.</param>
+    /// <param name="contextId">The requesting resource id (optional).</param>
+    /// <returns>The resolved resource id.</returns>
     public static ResourceId Resolve(string reference, ResourceId? contextId)
     {
         if (string.IsNullOrWhiteSpace(reference))

@@ -32,12 +32,15 @@ public sealed class SyntaxTreePreprocessor<TImportNode, TContext>
         var parser = new ImportDirectiveParser<TImportNode>(getReference);
         var mergeStrategy = new SyntaxTreeMergeStrategy<TImportNode, TContext>(getReference);
 
-        _preprocessor = new Preprocessor<SyntaxTree, ImportDirective, TContext>(
+        var config = new PreprocessorConfiguration<SyntaxTree, ImportDirective, TContext>(
             parser,
             ImportDirectiveModel.Instance,
             resolver,
             mergeStrategy,
-            SyntaxTreeContentModel.Instance);
+            SyntaxTreeContentModel.Instance,
+            SyntaxTreeContentBoundaryResolverProvider.Instance);
+
+        _preprocessor = new Preprocessor<SyntaxTree, ImportDirective, TContext>(config);
     }
 
     /// <summary>

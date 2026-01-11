@@ -4,7 +4,7 @@ AST-native preprocessor bridge between [TinyAst](https://github.com/user/TinyAst
 
 ## Requirements
 
-- **TinyPreprocessor 0.3.0+** (generic content API)
+- **TinyPreprocessor 0.4.0+** (resolved-id mapping during merge)
 - **TinyAst 0.11.0+** (schema binding, SyntaxEditor)
 - **.NET 8.0+**
 
@@ -16,6 +16,13 @@ This bridge enables AST-native import/include preprocessing:
 - Downstream consumers define imports by binding a node type in their schema, and providing a reference-extractor delegate
 - Merging uses `SyntaxEditor` to inline resolved content directly into the AST
 - Source maps track original locations through the merge process
+
+### TinyPreprocessor v0.4 merge semantics
+
+- `ResourceId` is treated as an **opaque identity** during merge (not required to be path-like).
+- Resolvers are the **source of truth** for canonical `ResourceId` values.
+- Merge uses the resolver-produced resolved-id mapping (`MergeContext.ResolvedReferences`) for each directive occurrence.
+- Merge must **not** re-derive dependency IDs from raw reference strings (path heuristics).
 
 ## Quick Start
 
@@ -139,6 +146,10 @@ else
 - [Generic TinyPreprocessor Contracts](docs/bridge/03-generic-preprocessor-contracts.md)
 - [Source Mapping + Diagnostics](docs/bridge/04-source-mapping-and-diagnostics.md)
 - [Implementation Plan](docs/bridge/05-implementation-plan.md)
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

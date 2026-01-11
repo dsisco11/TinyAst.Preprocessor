@@ -8,7 +8,7 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>TinyAst.Preprocessor</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.4.0</Version>
     <Authors>David Sisco</Authors>
     <Description>AST-native preprocessor bridge between TinyAst and TinyPreprocessor. Enables import/include preprocessing directly on schema-bound syntax trees without text reparsing.</Description>
     <PackageTags>ast;preprocessor;tinyast;syntax-tree;import;include;parsing</PackageTags>
@@ -31,8 +31,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="TinyAst" Version="0.11.0" />
-    <PackageReference Include="TinyPreprocessor" Version="0.3.0" />
+    <PackageReference Include="TinyAst" Version="[0.11.0,)" />
+    <PackageReference Include="TinyPreprocessor" Version="[0.4.0,)" />
   </ItemGroup>
 
 </Project>

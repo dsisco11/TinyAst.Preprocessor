@@ -12,6 +12,22 @@ namespace TinyAst.Preprocessor.Tests.Bridge.Merging;
 
 public class SyntaxTreeMergeStrategyTests
 {
+    private sealed class CountingMergeStrategy : SyntaxTreeMergeStrategy<TestImportNode, object>
+    {
+        private readonly Dictionary<ResourceId, int> _counts;
+
+        public CountingMergeStrategy(Dictionary<ResourceId, int> counts)
+            : base(n => n.Reference)
+        {
+            _counts = counts;
+        }
+
+        protected override void OnProcessResource(ResourceId resourceId)
+        {
+            _counts[resourceId] = _counts.TryGetValue(resourceId, out var c) ? c + 1 : 1;
+        }
+    }
+
     private static Schema CreateTestSchema()
     {
         var importPattern = new PatternBuilder()
@@ -26,14 +42,32 @@ public class SyntaxTreeMergeStrategyTests
             .Build();
     }
 
-    private static MergeContext<SyntaxTree, ImportDirective> CreateMergeContext()
+    private static MergeContext<SyntaxTree, ImportDirective> CreateMergeContext(
+        IReadOnlyList<ResolvedResource<SyntaxTree, ImportDirective>> orderedResources)
     {
+        var resolvedCache = orderedResources
+            .Select(r => r.Resource)
+            .ToDictionary(r => r.Id, r => (IResource<SyntaxTree>)r);
+
+        var resolvedReferences = new Dictionary<MergeContext<SyntaxTree, ImportDirective>.ResolvedReferenceKey, ResourceId>();
+
+        foreach (var resource in orderedResources)
+        {
+            for (var i = 0; i < resource.Directives.Count; i++)
+            {
+                var key = new MergeContext<SyntaxTree, ImportDirective>.ResolvedReferenceKey(resource.Id, i);
+                resolvedReferences[key] = new ResourceId(resource.Directives[i].Reference);
+            }
+        }
+
         return new MergeContext<SyntaxTree, ImportDirective>(
             new SourceMapBuilder(),
             new DiagnosticCollection(),
-            new Dictionary<ResourceId, IResource<SyntaxTree>>(),
+            resolvedCache,
+            resolvedReferences,
             ImportDirectiveModel.Instance,
-            SyntaxTreeContentModel.Instance);
+            SyntaxTreeContentModel.Instance,
+            SyntaxTreeContentBoundaryResolverProvider.Instance);
     }
 
     private static IResource<SyntaxTree> CreateResource(string id, string source, Schema schema)
@@ -57,7 +91,7 @@ public class SyntaxTreeMergeStrategyTests
     {
         // Arrange
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext([]);
 
         // Act
         var result = strategy.Merge([], null!, context);
@@ -77,7 +111,7 @@ public class SyntaxTreeMergeStrategyTests
         var orderedResources = new List<ResolvedResource<SyntaxTree, ImportDirective>> { resolved };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -113,7 +147,7 @@ public class SyntaxTreeMergeStrategyTests
         };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -154,7 +188,7 @@ public class SyntaxTreeMergeStrategyTests
         };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -208,7 +242,7 @@ public class SyntaxTreeMergeStrategyTests
         };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -236,7 +270,7 @@ public class SyntaxTreeMergeStrategyTests
         var orderedResources = new List<ResolvedResource<SyntaxTree, ImportDirective>> { resolved };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -271,7 +305,7 @@ public class SyntaxTreeMergeStrategyTests
         };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -296,7 +330,7 @@ public class SyntaxTreeMergeStrategyTests
         var orderedResources = new List<ResolvedResource<SyntaxTree, ImportDirective>> { resolved };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -334,7 +368,7 @@ public class SyntaxTreeMergeStrategyTests
         };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -369,7 +403,7 @@ public class SyntaxTreeMergeStrategyTests
         };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -410,7 +444,7 @@ public class SyntaxTreeMergeStrategyTests
         };
 
         var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
-        var context = CreateMergeContext();
+        var context = CreateMergeContext(orderedResources);
 
         // Act
         var result = strategy.Merge(orderedResources, null!, context);
@@ -428,6 +462,158 @@ public class SyntaxTreeMergeStrategyTests
 
         Assert.True(aIndex < middleIndex, "Content from 'a' should appear before 'middle'");
         Assert.True(middleIndex < bIndex, "'middle' content should appear before content from 'b'");
+    }
+
+    [Fact]
+    public void Merge_NonPathCanonicalResourceId_ReplacesImportWithContent()
+    {
+        // Arrange
+        var schema = CreateTestSchema();
+
+        var canonicalId = "domain:lib/shared";
+        var mainSource = $"import \"{canonicalId}\"\nlet x = 1";
+        var libSource = "let y = 2";
+
+        var mainResource = CreateResource("main", mainSource, schema);
+        var libResource = CreateResource(canonicalId, libSource, schema);
+
+        // Parse directives from main
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
+        var mainDirectives = parser.Parse(mainResource.Content, mainResource.Id).ToList();
+
+        var libResolved = CreateResolvedResource(libResource);
+        var mainResolved = CreateResolvedResource(mainResource, mainDirectives);
+
+        // Dependency order: lib first, then main (root)
+        var orderedResources = new List<ResolvedResource<SyntaxTree, ImportDirective>>
+        {
+            libResolved,
+            mainResolved
+        };
+
+        var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
+        var context = CreateMergeContext(orderedResources);
+
+        // Act
+        var result = strategy.Merge(orderedResources, null!, context);
+
+        // Assert
+        var mergedText = result.ToText();
+        Assert.Contains("let y = 2", mergedText);
+        Assert.Contains("let x = 1", mergedText);
+        Assert.DoesNotContain("import", mergedText);
+    }
+
+    [Fact]
+    public void Merge_SharedDependencyProcessedOnce_WhenIncludedMultipleTimes()
+    {
+        // Arrange
+        var schema = CreateTestSchema();
+
+        // main imports a and b; both a and b import shared
+        var sharedSource = "let shared = 1";
+        var aSource = "import \"shared\"\nlet a = shared";
+        var bSource = "import \"shared\"\nlet b = shared";
+        var mainSource = "import \"a\"\nimport \"b\"\nlet main = 0";
+
+        var sharedResource = CreateResource("shared", sharedSource, schema);
+        var aResource = CreateResource("a", aSource, schema);
+        var bResource = CreateResource("b", bSource, schema);
+        var mainResource = CreateResource("main", mainSource, schema);
+
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
+        var aDirectives = parser.Parse(aResource.Content, aResource.Id).ToList();
+        var bDirectives = parser.Parse(bResource.Content, bResource.Id).ToList();
+        var mainDirectives = parser.Parse(mainResource.Content, mainResource.Id).ToList();
+
+        var sharedResolved = CreateResolvedResource(sharedResource);
+        var aResolved = CreateResolvedResource(aResource, aDirectives);
+        var bResolved = CreateResolvedResource(bResource, bDirectives);
+        var mainResolved = CreateResolvedResource(mainResource, mainDirectives);
+
+        // Dependency order (deps first). Note: shared appears once even though referenced twice.
+        var orderedResources = new List<ResolvedResource<SyntaxTree, ImportDirective>>
+        {
+            sharedResolved,
+            aResolved,
+            bResolved,
+            mainResolved
+        };
+
+        var counts = new Dictionary<ResourceId, int>();
+        var strategy = new CountingMergeStrategy(counts);
+
+        var context = CreateMergeContext(orderedResources);
+
+        // Act
+        var result = strategy.Merge(orderedResources, null!, context);
+
+        // Assert
+        Assert.Equal(1, counts[new ResourceId("shared")]);
+        Assert.Equal(1, counts[new ResourceId("a")]);
+        Assert.Equal(1, counts[new ResourceId("b")]);
+        Assert.Equal(1, counts[new ResourceId("main")]);
+
+        Assert.Empty(context.Diagnostics);
+        Assert.DoesNotContain("import", result.ToText());
+    }
+
+    [Fact]
+    public void Merge_IncludeOfIncludeProcessedOnce()
+    {
+        // Arrange
+        var schema = CreateTestSchema();
+
+        // main -> a -> shared -> leaf
+        var leafSource = "let leaf = 1";
+        var sharedSource = "import \"leaf\"\nlet shared = leaf";
+        var aSource = "import \"shared\"\nlet a = shared";
+        var mainSource = "import \"a\"\nlet main = 0";
+
+        var leafResource = CreateResource("leaf", leafSource, schema);
+        var sharedResource = CreateResource("shared", sharedSource, schema);
+        var aResource = CreateResource("a", aSource, schema);
+        var mainResource = CreateResource("main", mainSource, schema);
+
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
+        var sharedDirectives = parser.Parse(sharedResource.Content, sharedResource.Id).ToList();
+        var aDirectives = parser.Parse(aResource.Content, aResource.Id).ToList();
+        var mainDirectives = parser.Parse(mainResource.Content, mainResource.Id).ToList();
+
+        var leafResolved = CreateResolvedResource(leafResource);
+        var sharedResolved = CreateResolvedResource(sharedResource, sharedDirectives);
+        var aResolved = CreateResolvedResource(aResource, aDirectives);
+        var mainResolved = CreateResolvedResource(mainResource, mainDirectives);
+
+        var orderedResources = new List<ResolvedResource<SyntaxTree, ImportDirective>>
+        {
+            leafResolved,
+            sharedResolved,
+            aResolved,
+            mainResolved
+        };
+
+        var counts = new Dictionary<ResourceId, int>();
+        var strategy = new CountingMergeStrategy(counts);
+
+        var context = CreateMergeContext(orderedResources);
+
+        // Act
+        var result = strategy.Merge(orderedResources, null!, context);
+
+        // Assert
+        Assert.Equal(1, counts[new ResourceId("leaf")]);
+        Assert.Equal(1, counts[new ResourceId("shared")]);
+        Assert.Equal(1, counts[new ResourceId("a")]);
+        Assert.Equal(1, counts[new ResourceId("main")]);
+
+        Assert.Empty(context.Diagnostics);
+        var mergedText = result.ToText();
+        Assert.Contains("let leaf = 1", mergedText);
+        Assert.Contains("let shared = leaf", mergedText);
+        Assert.Contains("let a = shared", mergedText);
+        Assert.Contains("let main = 0", mergedText);
+        Assert.DoesNotContain("import", mergedText);
     }
 
     #endregion

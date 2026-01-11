@@ -1,14 +1,14 @@
-# Generic TinyPreprocessor Contracts (TinyPreprocessor 0.3.0)
+# Generic TinyPreprocessor Contracts (TinyPreprocessor 0.4.0)
 
-TinyPreprocessor 0.3.0 is generic over **content**. This bridge will target that API surface.
+TinyPreprocessor 0.4.0 is generic over **content** and includes merge-time resolved-id mapping. This bridge targets that API surface.
 
 ## Why Content Generics Matter
 
-Historically, TinyPreprocessor operated on text content. With 0.3.0, the pipeline can operate on any `TContent` as long as an `IContentModel<TContent>` is provided.
+Historically, TinyPreprocessor operated on text content. With 0.3.0 it became generic over content via `IContentModel<TContent>`, and in 0.4.0 it adds merge-time resolved-id mapping plus optional boundary resolution.
 
 ## Actual Core Abstractions
 
-TinyPreprocessor 0.3.0 is built around these abstractions:
+TinyPreprocessor 0.4.0 is built around these abstractions:
 
 - `IResource<TContent>`
 
@@ -38,6 +38,14 @@ TinyPreprocessor 0.3.0 is built around these abstractions:
   - `int GetLength(TContent content)`
   - `TContent Slice(TContent content, int start, int length)`
 
+- `IContentBoundaryResolver<TContent, TBoundary>`
+
+  - `IEnumerable<int> ResolveOffsets(TContent content, ResourceId resourceId, int startOffset, int endOffset)`
+
+- `IContentBoundaryResolverProvider`
+
+  - `bool TryGet<TContent, TBoundary>(out IContentBoundaryResolver<TContent, TBoundary> resolver)`
+
 - `Preprocessor<TContent, TDirective, TContext>`
 
   - `Task<PreprocessResult<TContent>> ProcessAsync(IResource<TContent> root, TContext context, PreprocessorOptions? options = null, CancellationToken ct = default)`
@@ -48,6 +56,10 @@ TinyPreprocessor 0.3.0 is built around these abstractions:
   - `DiagnosticCollection Diagnostics`
 
 The important implication for this bridge is that **locations are still expressed as `System.Range`**. The meaning of those offsets is defined by `IContentModel<TContent>`.
+
+TinyPreprocessor v0.4 also introduces a second, optional axis for interpreting locations:
+
+- Logical boundary kinds (e.g., `TinyPreprocessor.Text.LineBoundary`) resolved via `IContentBoundaryResolverProvider`.
 
 ## Locations for AST Pipelines
 
@@ -74,3 +86,11 @@ Whichever is chosen, `IContentModel<TContent>` must define how to:
 
 - compute length (`GetLength`)
 - slice (`Slice`) in the same offset space used by `SyntaxNode.Position`
+
+## Merge Identity in v0.4
+
+TinyPreprocessor v0.4 treats dependency identity as resolver-owned:
+
+- `ResourceId` is an opaque identity (not required to be path-like).
+- Resolvers may canonicalize references.
+- Merge uses `MergeContext.ResolvedReferences` (keyed by directive occurrence) to select the dependency `ResourceId` to inline.
