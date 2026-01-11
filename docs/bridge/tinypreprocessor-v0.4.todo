@@ -56,7 +56,7 @@ PHASE 2 — Migrate merge strategy to authoritative resolved IDs
 [x] Ensure merge-time diagnostics include correct `ResourceId` and import location.
 Acceptance
 	[x] Existing merge tests updated and green.
-	[ ] Merge succeeds when canonical ID differs from reference string.
+	[x] Merge succeeds when canonical ID differs from reference string.
 
 
 PHASE 3 — Keep canonicalization boundaries clean
@@ -74,17 +74,17 @@ Acceptance
 
 PHASE 4 — Update tests + add new v0.4-specific coverage
 -------------------------------------------------------
-[ ] Extend merge test harness to construct the new v0.4 merge context shape.
+[x] Extend merge test harness to construct the new v0.4 merge context shape.
 	- Provide the resolved-id mapping needed by merge.
-[ ] Add unit test: "non-path canonical ResourceId merges".
+[x] Add unit test: "non-path canonical ResourceId merges".
 	- Example: `import "domain:lib/shared"` resolves/inlines a dependency stored under `domain:lib/shared`.
-[ ] Add integration test: "canonical ID differs from raw reference".
+[x] Add integration test: "canonical ID differs from raw reference".
 	- Example: raw reference `lib/shared` maps to canonical `domain:lib/shared`; merge must inline canonical resource.
-[ ] (Optional hardening) Add test: duplicate references with distinct canonical targets.
+[x] (Optional hardening) Add test: duplicate references with distinct canonical targets.
 	- Two identical references in a file resolve to two different canonical IDs; occurrence indexing must be stable.
 Acceptance
-	[ ] `dotnet test` green.
-	[ ] New tests fail on the pre-v0.4 merge strategy (proving they are meaningful).
+	[x] `dotnet test` green.
+	[-] New tests fail on the pre-v0.4 merge strategy (proving they are meaningful).
 
 
 PHASE 4B — Prove no redundant merge work (unit tests)

@@ -448,5 +448,45 @@ public class SyntaxTreeMergeStrategyTests
         Assert.True(middleIndex < bIndex, "'middle' content should appear before content from 'b'");
     }
 
+    [Fact]
+    public void Merge_NonPathCanonicalResourceId_ReplacesImportWithContent()
+    {
+        // Arrange
+        var schema = CreateTestSchema();
+
+        var canonicalId = "domain:lib/shared";
+        var mainSource = $"import \"{canonicalId}\"\nlet x = 1";
+        var libSource = "let y = 2";
+
+        var mainResource = CreateResource("main", mainSource, schema);
+        var libResource = CreateResource(canonicalId, libSource, schema);
+
+        // Parse directives from main
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
+        var mainDirectives = parser.Parse(mainResource.Content, mainResource.Id).ToList();
+
+        var libResolved = CreateResolvedResource(libResource);
+        var mainResolved = CreateResolvedResource(mainResource, mainDirectives);
+
+        // Dependency order: lib first, then main (root)
+        var orderedResources = new List<ResolvedResource<SyntaxTree, ImportDirective>>
+        {
+            libResolved,
+            mainResolved
+        };
+
+        var strategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
+        var context = CreateMergeContext(orderedResources);
+
+        // Act
+        var result = strategy.Merge(orderedResources, null!, context);
+
+        // Assert
+        var mergedText = result.ToText();
+        Assert.Contains("let y = 2", mergedText);
+        Assert.Contains("let x = 1", mergedText);
+        Assert.DoesNotContain("import", mergedText);
+    }
+
     #endregion
 }

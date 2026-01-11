@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using TinyAst.Preprocessor.Bridge.Content;
 using TinyAst.Preprocessor.Bridge.Imports;
 using TinyAst.Preprocessor.Bridge.Merging;
@@ -15,6 +16,93 @@ namespace TinyAst.Preprocessor.Tests.Integration;
 /// </summary>
 public class PreprocessorIntegrationTests
 {
+    private sealed class MappingResolver : IResourceResolver<SyntaxTree>
+    {
+        private readonly InMemorySyntaxTreeResourceStore _store;
+        private readonly IReadOnlyDictionary<string, ResourceId> _map;
+
+        public MappingResolver(InMemorySyntaxTreeResourceStore store, IReadOnlyDictionary<string, ResourceId> map)
+        {
+            _store = store;
+            _map = map;
+        }
+
+        public ValueTask<ResourceResolutionResult<SyntaxTree>> ResolveAsync(
+            string reference,
+            IResource<SyntaxTree>? context,
+            CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var key = reference.Trim();
+            var resolvedId = _map.TryGetValue(key, out var mapped)
+                ? mapped
+                : new ResourceId(key);
+
+            if (_store.TryGet(resolvedId, out var resource))
+            {
+                return ValueTask.FromResult(ResourceResolutionResult<SyntaxTree>.Success(resource));
+            }
+
+            var diagnostic = new ResolutionFailedDiagnostic(
+                reference,
+                "NotFound",
+                context?.Id,
+                null);
+
+            return ValueTask.FromResult(ResourceResolutionResult<SyntaxTree>.Failure(diagnostic));
+        }
+    }
+
+    private sealed class SequencedMappingResolver : IResourceResolver<SyntaxTree>
+    {
+        private readonly InMemorySyntaxTreeResourceStore _store;
+        private readonly IReadOnlyDictionary<string, ResourceId[]> _map;
+        private readonly ConcurrentDictionary<string, int> _counts = new(StringComparer.Ordinal);
+
+        public SequencedMappingResolver(InMemorySyntaxTreeResourceStore store, IReadOnlyDictionary<string, ResourceId[]> map)
+        {
+            _store = store;
+            _map = map;
+        }
+
+        public ValueTask<ResourceResolutionResult<SyntaxTree>> ResolveAsync(
+            string reference,
+            IResource<SyntaxTree>? context,
+            CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var key = reference.Trim();
+
+            if (_map.TryGetValue(key, out var ids) && ids.Length > 0)
+            {
+                var callIndex = _counts.AddOrUpdate(key, 0, (_, existing) => existing + 1);
+                var sequenceIndex = Math.Min(callIndex, ids.Length - 1);
+                var resolvedId = ids[sequenceIndex];
+
+                if (_store.TryGet(resolvedId, out var resource))
+                {
+                    return ValueTask.FromResult(ResourceResolutionResult<SyntaxTree>.Success(resource));
+                }
+            }
+
+            var fallbackId = new ResourceId(key);
+            if (_store.TryGet(fallbackId, out var fallbackResource))
+            {
+                return ValueTask.FromResult(ResourceResolutionResult<SyntaxTree>.Success(fallbackResource));
+            }
+
+            var diagnostic = new ResolutionFailedDiagnostic(
+                reference,
+                "NotFound",
+                context?.Id,
+                null);
+
+            return ValueTask.FromResult(ResourceResolutionResult<SyntaxTree>.Failure(diagnostic));
+        }
+    }
+
     private static Schema CreateTestSchema()
     {
         var importPattern = new PatternBuilder()
@@ -434,6 +522,107 @@ public class PreprocessorIntegrationTests
         Assert.Equal(2, resolutionDiagnostics.Count);
         Assert.Contains(resolutionDiagnostics, d => d.Reference == "missing1");
         Assert.Contains(resolutionDiagnostics, d => d.Reference == "missing2");
+    }
+
+    [Fact]
+    public async Task ProcessAsync_CanonicalIdDiffersFromReference_MergesUsingCanonicalId()
+    {
+        // Arrange
+        var schema = CreateTestSchema();
+        var store = new InMemorySyntaxTreeResourceStore();
+
+        var canonicalId = new ResourceId("domain:lib/shared");
+        var libSource = "let lib = 42";
+        var mainSource = "import \"lib/shared\"\nlet main = lib";
+
+        store.Add(CreateResource(canonicalId.Path, libSource, schema));
+        var mainResource = CreateResource("main", mainSource, schema);
+        store.Add(mainResource);
+
+        var resolver = new MappingResolver(
+            store,
+            new Dictionary<string, ResourceId>(StringComparer.Ordinal)
+            {
+                ["lib/shared"] = canonicalId
+            });
+
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
+        var mergeStrategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
+
+        var config = new PreprocessorConfiguration<SyntaxTree, ImportDirective, object>(
+            parser,
+            ImportDirectiveModel.Instance,
+            resolver,
+            mergeStrategy,
+            SyntaxTreeContentModel.Instance);
+
+        var preprocessor = new Preprocessor<SyntaxTree, ImportDirective, object>(config);
+
+        // Act
+        var result = await preprocessor.ProcessAsync(mainResource, null!, PreprocessorOptions.Default);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Empty(result.Diagnostics);
+
+        var mergedText = result.Content.ToText();
+        Assert.Contains("let lib = 42", mergedText);
+        Assert.Contains("let main = lib", mergedText);
+        Assert.DoesNotContain("import", mergedText);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_DuplicateReferences_CanResolveToDistinctCanonicalTargets()
+    {
+        // Arrange
+        var schema = CreateTestSchema();
+        var store = new InMemorySyntaxTreeResourceStore();
+
+        var canonicalA = new ResourceId("domain:lib/shared/a");
+        var canonicalB = new ResourceId("domain:lib/shared/b");
+
+        store.Add(CreateResource(canonicalA.Path, "let libA = 1", schema));
+        store.Add(CreateResource(canonicalB.Path, "let libB = 2", schema));
+
+        var mainSource = "import \"lib/shared\"\nimport \"lib/shared\"\nlet main = 0";
+        var mainResource = CreateResource("main", mainSource, schema);
+        store.Add(mainResource);
+
+        var resolver = new SequencedMappingResolver(
+            store,
+            new Dictionary<string, ResourceId[]>(StringComparer.Ordinal)
+            {
+                ["lib/shared"] = [canonicalA, canonicalB]
+            });
+
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
+        var mergeStrategy = new SyntaxTreeMergeStrategy<TestImportNode, object>(n => n.Reference);
+
+        var config = new PreprocessorConfiguration<SyntaxTree, ImportDirective, object>(
+            parser,
+            ImportDirectiveModel.Instance,
+            resolver,
+            mergeStrategy,
+            SyntaxTreeContentModel.Instance);
+
+        var preprocessor = new Preprocessor<SyntaxTree, ImportDirective, object>(config);
+
+        // Act
+        var result = await preprocessor.ProcessAsync(mainResource, null!, PreprocessorOptions.Default);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Empty(result.Diagnostics);
+
+        var mergedText = result.Content.ToText();
+        Assert.Contains("let libA = 1", mergedText);
+        Assert.Contains("let libB = 2", mergedText);
+        Assert.Contains("let main = 0", mergedText);
+        Assert.DoesNotContain("import", mergedText);
+
+        var aIndex = mergedText.IndexOf("let libA = 1", StringComparison.Ordinal);
+        var bIndex = mergedText.IndexOf("let libB = 2", StringComparison.Ordinal);
+        Assert.True(aIndex >= 0 && bIndex >= 0 && aIndex < bIndex, "First resolved target should appear before second.");
     }
 
     #endregion
