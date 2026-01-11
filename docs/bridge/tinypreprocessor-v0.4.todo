@@ -89,18 +89,18 @@ Acceptance
 
 PHASE 4B — Prove no redundant merge work (unit tests)
 -----------------------------------------------------
-[ ] Add unit test: "shared dependency merged once".
+[x] Add unit test: "shared dependency merged once".
 	- Graph: `main` imports `a` and `b`; both `a` and `b` import `shared`.
 	- Expectation: `shared` is merged/processed exactly once, and the merged output contains `shared` content only once (or in the single canonical location defined by the merge semantics).
-[ ] Add unit test: "include-of-include processed once".
+[x] Add unit test: "include-of-include processed once".
 	- Graph: `main` imports `a`; `a` imports `shared`; `shared` imports `leaf`.
 	- Expectation: `shared` has its own includes merged exactly once even though it is itself an include.
-[ ] Add a test-only instrumentation strategy to measure work.
+[x] Add a test-only instrumentation strategy to measure work.
 	- Prefer: a wrapper around `IMergeStrategy` or a test-only derived merge strategy that increments a counter per `resourceId` when its content is processed.
 	- Avoid: asserting on incidental implementation details like dictionary ordering.
 Acceptance
-	[ ] Tests explicitly assert “processed count per ResourceId == 1”.
-	[ ] Tests fail if the merge processes the same ResourceId multiple times.
+	[x] Tests explicitly assert “processed count per ResourceId == 1”.
+	[x] Tests fail if the merge processes the same ResourceId multiple times.
 
 
 PHASE 4C — Implement `IContentBoundaryResolver` (TinyPreprocessor v0.4)

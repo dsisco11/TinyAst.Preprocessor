@@ -12,6 +12,22 @@ namespace TinyAst.Preprocessor.Tests.Bridge.Merging;
 
 public class SyntaxTreeMergeStrategyTests
 {
+    private sealed class CountingMergeStrategy : SyntaxTreeMergeStrategy<TestImportNode, object>
+    {
+        private readonly Dictionary<ResourceId, int> _counts;
+
+        public CountingMergeStrategy(Dictionary<ResourceId, int> counts)
+            : base(n => n.Reference)
+        {
+            _counts = counts;
+        }
+
+        protected override void OnProcessResource(ResourceId resourceId)
+        {
+            _counts[resourceId] = _counts.TryGetValue(resourceId, out var c) ? c + 1 : 1;
+        }
+    }
+
     private static Schema CreateTestSchema()
     {
         var importPattern = new PatternBuilder()
@@ -485,6 +501,118 @@ public class SyntaxTreeMergeStrategyTests
         var mergedText = result.ToText();
         Assert.Contains("let y = 2", mergedText);
         Assert.Contains("let x = 1", mergedText);
+        Assert.DoesNotContain("import", mergedText);
+    }
+
+    [Fact]
+    public void Merge_SharedDependencyProcessedOnce_WhenIncludedMultipleTimes()
+    {
+        // Arrange
+        var schema = CreateTestSchema();
+
+        // main imports a and b; both a and b import shared
+        var sharedSource = "let shared = 1";
+        var aSource = "import \"shared\"\nlet a = shared";
+        var bSource = "import \"shared\"\nlet b = shared";
+        var mainSource = "import \"a\"\nimport \"b\"\nlet main = 0";
+
+        var sharedResource = CreateResource("shared", sharedSource, schema);
+        var aResource = CreateResource("a", aSource, schema);
+        var bResource = CreateResource("b", bSource, schema);
+        var mainResource = CreateResource("main", mainSource, schema);
+
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
+        var aDirectives = parser.Parse(aResource.Content, aResource.Id).ToList();
+        var bDirectives = parser.Parse(bResource.Content, bResource.Id).ToList();
+        var mainDirectives = parser.Parse(mainResource.Content, mainResource.Id).ToList();
+
+        var sharedResolved = CreateResolvedResource(sharedResource);
+        var aResolved = CreateResolvedResource(aResource, aDirectives);
+        var bResolved = CreateResolvedResource(bResource, bDirectives);
+        var mainResolved = CreateResolvedResource(mainResource, mainDirectives);
+
+        // Dependency order (deps first). Note: shared appears once even though referenced twice.
+        var orderedResources = new List<ResolvedResource<SyntaxTree, ImportDirective>>
+        {
+            sharedResolved,
+            aResolved,
+            bResolved,
+            mainResolved
+        };
+
+        var counts = new Dictionary<ResourceId, int>();
+        var strategy = new CountingMergeStrategy(counts);
+
+        var context = CreateMergeContext(orderedResources);
+
+        // Act
+        var result = strategy.Merge(orderedResources, null!, context);
+
+        // Assert
+        Assert.Equal(1, counts[new ResourceId("shared")]);
+        Assert.Equal(1, counts[new ResourceId("a")]);
+        Assert.Equal(1, counts[new ResourceId("b")]);
+        Assert.Equal(1, counts[new ResourceId("main")]);
+
+        Assert.Empty(context.Diagnostics);
+        Assert.DoesNotContain("import", result.ToText());
+    }
+
+    [Fact]
+    public void Merge_IncludeOfIncludeProcessedOnce()
+    {
+        // Arrange
+        var schema = CreateTestSchema();
+
+        // main -> a -> shared -> leaf
+        var leafSource = "let leaf = 1";
+        var sharedSource = "import \"leaf\"\nlet shared = leaf";
+        var aSource = "import \"shared\"\nlet a = shared";
+        var mainSource = "import \"a\"\nlet main = 0";
+
+        var leafResource = CreateResource("leaf", leafSource, schema);
+        var sharedResource = CreateResource("shared", sharedSource, schema);
+        var aResource = CreateResource("a", aSource, schema);
+        var mainResource = CreateResource("main", mainSource, schema);
+
+        var parser = new ImportDirectiveParser<TestImportNode>(n => n.Reference);
+        var sharedDirectives = parser.Parse(sharedResource.Content, sharedResource.Id).ToList();
+        var aDirectives = parser.Parse(aResource.Content, aResource.Id).ToList();
+        var mainDirectives = parser.Parse(mainResource.Content, mainResource.Id).ToList();
+
+        var leafResolved = CreateResolvedResource(leafResource);
+        var sharedResolved = CreateResolvedResource(sharedResource, sharedDirectives);
+        var aResolved = CreateResolvedResource(aResource, aDirectives);
+        var mainResolved = CreateResolvedResource(mainResource, mainDirectives);
+
+        var orderedResources = new List<ResolvedResource<SyntaxTree, ImportDirective>>
+        {
+            leafResolved,
+            sharedResolved,
+            aResolved,
+            mainResolved
+        };
+
+        var counts = new Dictionary<ResourceId, int>();
+        var strategy = new CountingMergeStrategy(counts);
+
+        var context = CreateMergeContext(orderedResources);
+
+        // Act
+        var result = strategy.Merge(orderedResources, null!, context);
+
+        // Assert
+        Assert.Equal(1, counts[new ResourceId("leaf")]);
+        Assert.Equal(1, counts[new ResourceId("shared")]);
+        Assert.Equal(1, counts[new ResourceId("a")]);
+        Assert.Equal(1, counts[new ResourceId("main")]);
+
+        Assert.Empty(context.Diagnostics);
+        var mergedText = result.ToText();
+        Assert.Contains("let leaf = 1", mergedText);
+        Assert.Contains("let shared = leaf", mergedText);
+        Assert.Contains("let a = shared", mergedText);
+        Assert.Contains("let main = 0", mergedText);
         Assert.DoesNotContain("import", mergedText);
     }
 

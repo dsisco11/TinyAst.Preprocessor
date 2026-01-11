@@ -27,7 +27,7 @@ namespace TinyAst.Preprocessor.Bridge.Merging;
 /// merged output, enabling source location mapping.
 /// </para>
 /// </remarks>
-public sealed class SyntaxTreeMergeStrategy<TImportNode, TContext> : IMergeStrategy<SyntaxTree, ImportDirective, TContext>
+public class SyntaxTreeMergeStrategy<TImportNode, TContext> : IMergeStrategy<SyntaxTree, ImportDirective, TContext>
     where TImportNode : SyntaxNode
 {
     private readonly Func<TImportNode, string?> _getReference;
@@ -35,6 +35,10 @@ public sealed class SyntaxTreeMergeStrategy<TImportNode, TContext> : IMergeStrat
     public SyntaxTreeMergeStrategy(Func<TImportNode, string?> getReference)
     {
         _getReference = getReference ?? throw new ArgumentNullException(nameof(getReference));
+    }
+
+    protected virtual void OnProcessResource(ResourceId resourceId)
+    {
     }
 
     /// <inheritdoc/>
@@ -96,6 +100,8 @@ public sealed class SyntaxTreeMergeStrategy<TImportNode, TContext> : IMergeStrat
         Dictionary<ResourceId, SyntaxTree> processedTrees,
         MergeContext<SyntaxTree, ImportDirective> context)
     {
+        OnProcessResource(resource.Id);
+
         var content = resource.Content;
 
         if (!content.HasSchema)
