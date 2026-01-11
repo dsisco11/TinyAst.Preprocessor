@@ -51,43 +51,13 @@ public static class PreprocessorDiagnosticFormatter
     }
 
     /// <summary>
-    /// Formats a diagnostic using its existing <see cref="object.ToString"/>, appending a friendly location
-    /// suffix when possible.
-    /// </summary>
-    public static string Format(
-        IPreprocessorDiagnostic diagnostic,
-        Func<ResourceId, SyntaxTree?> getContent,
-        IContentBoundaryResolverProvider boundaryResolverProvider)
-    {
-        var text = diagnostic.ToString() ?? string.Empty;
-
-        if (!TryGetLineColumnLocation(diagnostic, getContent, boundaryResolverProvider, out var lineColumn))
-        {
-            return text;
-        }
-
-        // Avoid double-reporting if the diagnostic already renders line:column.
-        if (text.Contains($"@{lineColumn}", StringComparison.Ordinal))
-        {
-            return text;
-        }
-
-        if (TryGetResource(diagnostic, out var resourceId))
-        {
-            return $"{text} (at {resourceId}@{lineColumn})";
-        }
-
-        return $"{text} (at {lineColumn})";
-    }
-
-    /// <summary>
     /// Formats a diagnostic using the same general pattern as C# compiler diagnostics.
     /// </summary>
     /// <remarks>
     /// Pattern:
     /// <c>resource(line,column): severity CODE: message</c>
     /// </remarks>
-    public static string FormatCSharp(
+    public static string Format(
         IPreprocessorDiagnostic diagnostic,
         Func<ResourceId, SyntaxTree?> getContent,
         IContentBoundaryResolverProvider boundaryResolverProvider,

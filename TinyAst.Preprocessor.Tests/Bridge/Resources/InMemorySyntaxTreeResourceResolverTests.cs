@@ -96,7 +96,7 @@ public class InMemorySyntaxTreeResourceResolverTests
         Assert.True(ok);
         Assert.Equal("1:1", lineColumn);
 
-        var formatted = PreprocessorDiagnosticFormatter.FormatCSharp(
+        var formatted = PreprocessorDiagnosticFormatter.Format(
             diagnostic,
             id => id == mainId ? tree : null,
             SyntaxTreeContentBoundaryResolverProvider.Instance);
