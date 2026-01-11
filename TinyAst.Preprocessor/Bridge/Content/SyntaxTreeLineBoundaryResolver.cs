@@ -4,8 +4,23 @@ using TinyTokenizer.Ast;
 
 namespace TinyAst.Preprocessor.Bridge.Content;
 
+/// <summary>
+/// Resolves <see cref="LineBoundary"/> offsets for a <see cref="SyntaxTree"/>.
+/// </summary>
+/// <remarks>
+/// Offsets are absolute character offsets in TinyAst node coordinate space (trivia-inclusive).
+/// This implementation uses TinyAst's trivia/query system to find the node that follows each newline.
+/// </remarks>
 public sealed class SyntaxTreeLineBoundaryResolver : IContentBoundaryResolver<SyntaxTree, LineBoundary>
 {
+    /// <summary>
+    /// Returns line boundary offsets within the half-open range <c>[startOffset, endOffset)</c>.
+    /// </summary>
+    /// <param name="content">The content instance.</param>
+    /// <param name="resourceId">The resource identity for the content (not used for line boundary computation).</param>
+    /// <param name="startOffset">Inclusive start offset.</param>
+    /// <param name="endOffset">Exclusive end offset.</param>
+    /// <returns>An ordered sequence of boundary offsets.</returns>
     public IEnumerable<int> ResolveOffsets(
         SyntaxTree content,
         ResourceId resourceId,

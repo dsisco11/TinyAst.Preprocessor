@@ -32,11 +32,24 @@ public class SyntaxTreeMergeStrategy<TImportNode, TContext> : IMergeStrategy<Syn
 {
     private readonly Func<TImportNode, string?> _getReference;
 
+    /// <summary>
+    /// Creates a merge strategy using a delegate that extracts the import reference from <typeparamref name="TImportNode"/>.
+    /// </summary>
+    /// <param name="getReference">
+    /// Delegate that returns a reference string for an import node. Returning null/empty/whitespace causes the node to be ignored.
+    /// </param>
     public SyntaxTreeMergeStrategy(Func<TImportNode, string?> getReference)
     {
         _getReference = getReference ?? throw new ArgumentNullException(nameof(getReference));
     }
 
+    /// <summary>
+    /// Hook invoked once for each resource processed by the merge strategy.
+    /// </summary>
+    /// <remarks>
+    /// Intended for observability/testing; the default implementation is a no-op.
+    /// </remarks>
+    /// <param name="resourceId">The id of the resource being processed.</param>
     protected virtual void OnProcessResource(ResourceId resourceId)
     {
     }
