@@ -67,7 +67,7 @@ public class SyntaxTreeMergeStrategyTests
             resolvedReferences,
             ImportDirectiveModel.Instance,
             SyntaxTreeContentModel.Instance,
-            null);
+            SyntaxTreeContentBoundaryResolverProvider.Instance);
     }
 
     private static IResource<SyntaxTree> CreateResource(string id, string source, Schema schema)

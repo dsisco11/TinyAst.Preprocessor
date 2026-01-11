@@ -37,7 +37,8 @@ public sealed class SyntaxTreePreprocessor<TImportNode, TContext>
             ImportDirectiveModel.Instance,
             resolver,
             mergeStrategy,
-            SyntaxTreeContentModel.Instance);
+            SyntaxTreeContentModel.Instance,
+            SyntaxTreeContentBoundaryResolverProvider.Instance);
 
         _preprocessor = new Preprocessor<SyntaxTree, ImportDirective, TContext>(config);
     }

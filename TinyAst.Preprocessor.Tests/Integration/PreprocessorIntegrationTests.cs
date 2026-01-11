@@ -131,7 +131,8 @@ public class PreprocessorIntegrationTests
             ImportDirectiveModel.Instance,
             resolver,
             mergeStrategy,
-            SyntaxTreeContentModel.Instance);
+            SyntaxTreeContentModel.Instance,
+            SyntaxTreeContentBoundaryResolverProvider.Instance);
 
         return new Preprocessor<SyntaxTree, ImportDirective, object>(config);
     }
@@ -554,7 +555,8 @@ public class PreprocessorIntegrationTests
             ImportDirectiveModel.Instance,
             resolver,
             mergeStrategy,
-            SyntaxTreeContentModel.Instance);
+            SyntaxTreeContentModel.Instance,
+            SyntaxTreeContentBoundaryResolverProvider.Instance);
 
         var preprocessor = new Preprocessor<SyntaxTree, ImportDirective, object>(config);
 

@@ -105,22 +105,22 @@ Acceptance
 
 PHASE 4C — Implement `IContentBoundaryResolver` (TinyPreprocessor v0.4)
 ---------------------------------------------------------------------
-[ ] Decide which boundary kinds this bridge will support for `SyntaxTree`.
+[x] Decide which boundary kinds this bridge will support for `SyntaxTree`.
 	- Minimum: a "line boundary" equivalent (like TinyPreprocessor.Text.LineBoundary) for SyntaxTree content.
 	- Optional: node/token boundaries if TinyAst exposes stable boundary iteration.
-[ ] Implement `IContentBoundaryResolver<SyntaxTree, TBoundary>`.
+[x] Implement `IContentBoundaryResolver<SyntaxTree, TBoundary>`.
 	- Provide boundary offsets in the same coordinate space as `SyntaxNode.Position` / `Range` (absolute char offsets including trivia).
 	- Define how boundaries are computed from `SyntaxTree`:
 	  - Prefer: enumerate text and return offsets for `\n` (LF) and/or handle CRLF consistently.
 	  - Ensure bounds: only yield offsets in `[startOffset, endOffset]` and monotonically increasing.
-[ ] Provide an `IContentBoundaryResolverProvider` that the pipeline can pass into `MergeContext`.
+[x] Provide an `IContentBoundaryResolverProvider` that the pipeline can pass into `MergeContext`.
 	- Wire it through `SyntaxTreePreprocessor` (or configuration) so `PreprocessResult.SourceMap.ResolveOriginalBoundaryLocation(...)` works.
-[ ] Add tests:
+[x] Add tests:
 	- Boundary offsets are stable for a fixed tree.
 	- Boundary resolution across merged output returns expected boundary indices (sanity check).
 Acceptance
-	[ ] Consumers can resolve boundary locations from the source map (at least for line-like boundaries).
-	[ ] `dotnet test` green.
+	[x] Consumers can resolve boundary locations from the source map (at least for line-like boundaries).
+	[x] `dotnet test` green.
 
 
 PHASE 5 — Documentation updates
