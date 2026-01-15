@@ -7,6 +7,8 @@ using TinyAst.Preprocessor.Tests.Bridge.Imports;
 using TinyPreprocessor;
 using TinyPreprocessor.Core;
 using TinyPreprocessor.Diagnostics;
+using TinyPreprocessor.SourceMaps;
+using TinyPreprocessor.Text;
 using TinyTokenizer.Ast;
 
 namespace TinyAst.Preprocessor.Tests.Integration;
@@ -653,6 +655,85 @@ public class PreprocessorIntegrationTests
         // Assert
         Assert.True(result.Success);
         Assert.NotNull(result.SourceMap);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WithMultipleImports_MapsOffsetsToOriginalResources()
+    {
+        // Arrange
+        var schema = CreateTestSchema();
+        var store = new InMemorySyntaxTreeResourceStore();
+
+        var sharedSource = "let shared = 10";
+        var aSource = "import \"shared\"\nlet a = 1";
+        var bSource = "let b = 2";
+        var mainSource = "import \"a\"\nimport \"b\"\nlet main = a + b";
+
+        // Keep original trees for accurate line/column mapping (merge may mutate stored trees).
+        var originalTrees = new Dictionary<ResourceId, SyntaxTree>
+        {
+            [new ResourceId("shared")] = SyntaxTree.ParseAndBind(sharedSource, schema),
+            [new ResourceId("a")] = SyntaxTree.ParseAndBind(aSource, schema),
+            [new ResourceId("b")] = SyntaxTree.ParseAndBind(bSource, schema),
+            [new ResourceId("main")] = SyntaxTree.ParseAndBind(mainSource, schema),
+        };
+
+        store.Add(CreateResource("shared", sharedSource, schema));
+        store.Add(CreateResource("a", aSource, schema));
+        store.Add(CreateResource("b", bSource, schema));
+        var mainResource = CreateResource("main", mainSource, schema);
+        store.Add(mainResource);
+
+        var preprocessor = CreatePreprocessor(store);
+
+        // Act
+        var result = await preprocessor.ProcessAsync(mainResource, null!, PreprocessorOptions.Default);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.NotNull(result.SourceMap);
+
+        var mergedText = result.Content.ToText();
+        var sourceMap = result.SourceMap!;
+        var boundaryResolver = new SyntaxTreeLineBoundaryResolver();
+
+        SyntaxTree GetOriginalTree(ResourceId id) => originalTrees[id];
+
+        void AssertMapsTo(string marker, ResourceId expectedResource, string expectedSourceText)
+        {
+            var generatedOffset = mergedText.IndexOf(marker, StringComparison.Ordinal);
+            Assert.True(generatedOffset >= 0, $"Marker not found in merged output: {marker}");
+
+            var loc = sourceMap.ResolveOriginalBoundaryLocation<SyntaxTree, LineBoundary>(
+                generatedOffset,
+                GetOriginalTree,
+                boundaryResolver);
+
+            Assert.NotNull(loc);
+            Assert.Equal(expectedResource, loc!.Resource);
+
+            var expectedOriginalOffset = expectedSourceText.IndexOf(marker, StringComparison.Ordinal);
+            Assert.True(expectedOriginalOffset >= 0, $"Marker not found in original source for {expectedResource.Path}: {marker}");
+
+            // Allow a small tolerance here because TinyAst node spans may or may not include trailing trivia
+            // (e.g., newline after an import directive) depending on how the tokenizer models trivia.
+            Assert.InRange(loc.OriginalOffset, expectedOriginalOffset - 2, expectedOriginalOffset + 2);
+
+            var ok = SyntaxTreeLineColumnMapper.TryFormatRange(
+                GetOriginalTree(loc.Resource),
+                loc.Resource,
+                loc.OriginalOffset..loc.OriginalOffset,
+                boundaryResolver,
+                out var formatted);
+
+            Assert.True(ok);
+            Assert.False(string.IsNullOrWhiteSpace(formatted));
+        }
+
+        AssertMapsTo("let shared = 10", new ResourceId("shared"), sharedSource);
+        AssertMapsTo("let a = 1", new ResourceId("a"), aSource);
+        AssertMapsTo("let b = 2", new ResourceId("b"), bSource);
+        AssertMapsTo("let main = a + b", new ResourceId("main"), mainSource);
     }
 
     #endregion
